@@ -1,0 +1,16 @@
+[package]
+name = "_2025_5a_drl_demo_episodic_semi_gradient_sarsa_on_tic_tac_toe"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
+
+[dependencies]
+rand = "0.8.5"
+rand_xoshiro = "0.6.0"
+burn = { version = "0.14.0", features = ["wgpu", "autodiff", "ndarray", "tch"] }
+colored = "2.1.0"
+kdam = "0.5.2"
