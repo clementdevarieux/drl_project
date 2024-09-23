@@ -26,7 +26,7 @@ def main():
     print(policy)
 
     # Lancer un jeu pour visualiser la politique obtenue
-    environment.run_game_vec(policy)
+    environment.run_game_hashmap(policy)
 
 if __name__ == "__main__":
     main()
