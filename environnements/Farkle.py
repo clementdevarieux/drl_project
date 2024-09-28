@@ -7,13 +7,13 @@ class Farkle():
 
     def __init__(self):
         self._dices_values = np.zeros((NUM_DICE,), dtype=int) # valeurs actuelles des dés, entiers de 1 à 6
+        self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
         self._saved_dice = np.zeros((NUM_DICE,), dtype=int) # vecteur de 6 valeurs, 0 si dé non sauvé, sinon on met
         # le numéro du number of throw pour garder un historique, facilitera le calcul du potential score
         self._is_game_over = False # passera en True si self._score >= 10_000
         self._potential_score = 0 # score qu'on peut valider depuis le début du tour actuel du joueur
         self._score = 0 # score total cummulé et validé
         self._player = 0 # 0 pour nous 1 pour l'adversaire
-        self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
 
     def reset(self):
         self._dices_values = np.zeros((NUM_DICE,), dtype=int)
@@ -49,24 +49,17 @@ class Farkle():
         # donc on va tous les relancer quand ils sont pas en keep:
         # action = [0, 1, 1, 0, 1, 1]
 
-    def validated_score(self):
-        self._score += self._potential_score
+    def end_turn_score(self, keep: bool):
+        if keep:
+            self._score += self._potential_score
         self._potential_score = 0
+        self._dices_values = np.zeros((NUM_DICE,), dtype=int)
+        self._saved_dice = np.zeros((NUM_DICE,), dtype=int)
         if self._player == 0:
             self._player = 1
         else:
             self._player = 0
-        self._dices_values = np.zeros((NUM_DICE,), dtype=int)
-        self._saved_dice = np.zeros((NUM_DICE,), dtype=int)
 
-    def not_validated_score(self):
-        self._potential_score = 0
-        if self._player == 0:
-            self._player = 1
-        else:
-            self._player = 0
-        self._dices_values = np.zeros((NUM_DICE,), dtype=int)
-        self._saved_dice = np.zeros((NUM_DICE,), dtype=int)
 
     def potential_score(self):
         pass
@@ -76,6 +69,12 @@ class Farkle():
 
     def step(self, action: int):
         pass
+        # donc ici on va lancer tous les dés pour lesquels self._saved_dice == 0
+        # par contre avant, si self._saved_dice sont tous positifs, on les remets tous à 0
+        # ensuite on ajuste les différentes valeurs de dice, saved dice, potential score etc
+        # HYPER IMPORTANT: ici action va correspondre aux dés qu'on décide de garder
+        # en effet, on peut pas choisir desquels on lance, vu qu'on lance tout,
+        # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
 
     def is_game_over(self) -> bool:
         return self._is_game_over
