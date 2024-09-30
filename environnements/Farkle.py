@@ -28,6 +28,7 @@ class Farkle():
         # self._number_of_throw = 0
 
     def state_description(self) -> np.ndarray:
+        # VERIFIER COHERENCE ONE HOT
         state = np.zeros((NUM_STATE_FEATURES,))
         for i in range(NUM_DICE_VALUE_ONE_HOT):
             dice = i // 6
@@ -39,7 +40,7 @@ class Farkle():
             feature = i % 2
             if self._saved_dice[dice] == feature:
                 state[i+NUM_DICE_SAVED_ONE_HOT] = 1.0
-        state[NUM_STATE_FEATURES] = self._potential_score
+        state[NUM_STATE_FEATURES-1] = self._potential_score
         return state
 
     def end_turn_score(self, keep: bool):
@@ -55,27 +56,33 @@ class Farkle():
 
 
     def update_potential_score(self, action):
+        # action ==> 0 si on garde pas le dé
+        # ==> 1 si on le garde dans le cadre de l'attribution de points
+        # action => [x, x, x, x, x, x, end/not_end]
+
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
+        # [2,3,3,5,6,5] // [0,0,0,0,0,0]
         for i in range(NUM_DICE):
             if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
-                dice_count[self._dices_values[i]] += 1  # Compter les occurrences de chaque valeur de dé
+                dice_count[self._dices_values[i]-1] += 1  # Compter les occurrences de chaque valeur de dé
+        # dice_count = [0, 1, 2, 0, 2, 1]
 
         # SUITE
-        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) and np.sum(action) == 6:
+        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]):
             self._potential_score += 0.1500
             return
 
         # 3 PAIRES
         pairs = (dice_count == 2).sum()
-        if pairs == 3 and np.sum(action) == 6:
+        if pairs == 3:
             self._potential_score += 0.1500
             return
 
         # 4 DES IDENTIQUES + 1 PAIRE
         quadruples = (dice_count == 4).sum()
 
-        if quadruples == 1 and pairs == 1 and np.sum(action) == 6:
+        if quadruples == 1 and pairs == 1:
             self._potential_score += 0.1500
             return
 
@@ -89,14 +96,20 @@ class Farkle():
             if count == 3:
                 if i == 0:  # Trois 1
                     self._potential_score += 0.1000  # 1000 points pour trois 1
+                    # résultats de dés :[2,1,5,1,1,5]
+                    # saved dice : [0,0,1,0,0,0]
+                    # dice_count : [3,1,0,0,1,0]
+                    # action => [0,1,0,1,1,1/0,1/0]
+                    # reboucle sur tous les self._dice_value
+                    #
                 else:
                     self._potential_score += (i + 1) * 100 / 10_000 # Autres triples (2 à 6)
 
             # 1 INDIVIDUELS
-            if i == 0:
+            if self._dices_values[i] == 1 and action[i] == 1:
                 self._potential_score += count * 0.0100  # 100 points par 1
             # 5 INDIVIDUELS
-            elif i == 4:
+            elif self._dices_values[i] == 5 and action[i] == 1:
                 self._potential_score += count * 0.0050  # 50 points par 5
 
 
@@ -112,6 +125,8 @@ class Farkle():
         # avec : keep: Y // N // N // Y // N // N
         # donc on va tous les relancer quand ils sont pas en keep:
         # action = [0, 1, 1, 0, 1, 1]
+
+        # if update_potential_score(action)>0 and self._saved_dice[?] == 0
 
 
     def step(self, action: int):
