@@ -1,40 +1,104 @@
 import numpy as np
 import random
 
+NUM_DICE_VALUE_ONE_HOT = 36
+NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
-NUM_STATE_FEATURES = 13
+NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 1
 class Farkle():
 
     def __init__(self):
-        self._dices_values = np.zeros((NUM_DICE,), dtype=int) # valeurs actuelles des dés, entiers de 1 à 6
-        self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
-        self._saved_dice = np.zeros((NUM_DICE,), dtype=int) # vecteur de 6 valeurs, 0 si dé non sauvé, sinon on met
-        # le numéro du number of throw pour garder un historique, facilitera le calcul du potential score
+        self._dices_values = np.zeros((NUM_DICE,)) # 1 à 6
+        # self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
+        self._saved_dice = np.zeros((NUM_DICE,)) # 0 si dé peut être scoré
+        # 1 si dé déjà scoré
         self._is_game_over = False # passera en True si self._score >= 10_000
-        self._potential_score = 0 # score qu'on peut valider depuis le début du tour actuel du joueur
+        self._potential_score = 0.0 # score qu'on peut valider depuis le début du tour actuel du joueur
+        # il faut le multiplier par 10000 si on le fait passer vers score
         self._score = 0 # score total cummulé et validé
         self._player = 0 # 0 pour nous 1 pour l'adversaire
 
     def reset(self):
-        self._dices_values = np.zeros((NUM_DICE,), dtype=int)
-        self._saved_dice = np.zeros((NUM_DICE,), dtype=int)
+        self._dices_values = np.zeros((NUM_DICE,))
+        self._saved_dice = np.zeros((NUM_DICE,))
         self._is_game_over = False
         self._potential_score = 0
         self._score = 0
         self._player = 0
-        self._number_of_throw = 0
+        # self._number_of_throw = 0
 
     def state_description(self) -> np.ndarray:
         state = np.zeros((NUM_STATE_FEATURES,))
-        state[:6] = self._dices_values
-        state[6:12] = self._saved_dice
-        state[12] = self._potential_score
+        for i in range(NUM_DICE_VALUE_ONE_HOT):
+            dice = i // 6
+            feature = i % 6
+            if self._dices_values[dice] == feature:
+                state[i] = 1.0
+        for i in range(NUM_DICE_SAVED_ONE_HOT):
+            dice = i // 2
+            feature = i % 2
+            if self._saved_dice[dice] == feature:
+                state[i+NUM_DICE_SAVED_ONE_HOT] = 1.0
+        state[NUM_STATE_FEATURES] = self._potential_score
         return state
-        # Exemple :
-        # dés : 1 // 3 // 4 // 1 // 5 // 2
-        # keep: Y // N // N // Y // N // N
-        # temp_score = 200
-        # state_description ==> [1,3,4,1,5,2,1,0,0,1,0,0,200]
+
+    def end_turn_score(self, keep: bool):
+        if keep:
+            self._score += self._potential_score * 10_000
+        self._potential_score = 0.0
+        self._dices_values = np.zeros((NUM_DICE,))
+        self._saved_dice = np.zeros((NUM_DICE,))
+        if self._player == 0:
+            self._player = 1
+        else:
+            self._player = 0
+
+
+    def update_potential_score(self, action):
+        # Valeur des dés, et nombre d'apparition des dés scorables
+        dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
+        for i in range(NUM_DICE):
+            if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
+                dice_count[self._dices_values[i]] += 1  # Compter les occurrences de chaque valeur de dé
+
+        # SUITE
+        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) and np.sum(action) == 6:
+            self._potential_score += 0.1500
+            return
+
+        # 3 PAIRES
+        pairs = (dice_count == 2).sum()
+        if pairs == 3 and np.sum(action) == 6:
+            self._potential_score += 0.1500
+            return
+
+        # 4 DES IDENTIQUES + 1 PAIRE
+        quadruples = (dice_count == 4).sum()
+
+        if quadruples == 1 and pairs == 1 and np.sum(action) == 6:
+            self._potential_score += 0.1500
+            return
+
+        # autres scores
+        # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
+        # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
+        for i in range(6):
+            count = dice_count[i]
+
+            # 3 DES IDENTIQUES
+            if count == 3:
+                if i == 0:  # Trois 1
+                    self._potential_score += 0.1000  # 1000 points pour trois 1
+                else:
+                    self._potential_score += (i + 1) * 100 / 10_000 # Autres triples (2 à 6)
+
+            # 1 INDIVIDUELS
+            if i == 0:
+                self._potential_score += count * 0.0100  # 100 points par 1
+            # 5 INDIVIDUELS
+            elif i == 4:
+                self._potential_score += count * 0.0050  # 50 points par 5
+
 
     def available_actions_ids(self) -> np.ndarray:
         action = np.zeros((NUM_DICE,))
@@ -49,23 +113,6 @@ class Farkle():
         # donc on va tous les relancer quand ils sont pas en keep:
         # action = [0, 1, 1, 0, 1, 1]
 
-    def end_turn_score(self, keep: bool):
-        if keep:
-            self._score += self._potential_score
-        self._potential_score = 0
-        self._dices_values = np.zeros((NUM_DICE,), dtype=int)
-        self._saved_dice = np.zeros((NUM_DICE,), dtype=int)
-        if self._player == 0:
-            self._player = 1
-        else:
-            self._player = 0
-
-
-    def potential_score(self):
-        pass
-        # alors il va falloir regarder les indices modulo 6,
-        # on va sauvarger les combinaisons parmis les 6 premiers dés,
-        # en fonction de dés qu'on valide sur les 6 suivants
 
     def step(self, action: int):
         pass
