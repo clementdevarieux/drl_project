@@ -31,7 +31,7 @@ class Farkle():
         self.player_1 = Player(0)
         self.player_2 = Player(1)
 
-        self._dices_values = np.zeros((NUM_DICE,)) # 1 à 6
+        self.dices_values = np.zeros((NUM_DICE,)) # 1 à 6
         # self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
         self._saved_dice = np.zeros((NUM_DICE,)) # 0 si dé peut être scoré
         # 1 si dé déjà scoré
@@ -41,8 +41,12 @@ class Farkle():
         # self._score = 0 # score total cummulé et validé
         self.player_turn = 0 # 0 pour nous 1 pour l'adversaire
 
+    def launch_dices(self):
+        for i in range(NUM_DICE):
+            self.dices_values[i] = random.randint(1, 6)
+
     def reset(self):
-        self._dices_values = np.zeros((NUM_DICE,))
+        self.dices_values = np.zeros((NUM_DICE,))
         self._saved_dice = np.zeros((NUM_DICE,))
         self._is_game_over = False
         # self._potential_score = 0
@@ -56,7 +60,7 @@ class Farkle():
         for i in range(NUM_DICE_VALUE_ONE_HOT):
             dice = i // 6
             feature = i % 6
-            if self._dices_values[dice] == feature:
+            if self.dices_values[dice] == feature:
                 state[i] = 1.0
         for i in range(NUM_DICE_SAVED_ONE_HOT):
             dice = i // 2
@@ -71,13 +75,12 @@ class Farkle():
         if keep:
             player.score += player.potential_score * 10_000
         player.potential_score = 0.0
-        self._dices_values = np.zeros((NUM_DICE,))
+        self.dices_values = np.zeros((NUM_DICE,))
         self._saved_dice = np.zeros((NUM_DICE,))
         if self.player_turn == 0:
             self.player_turn = 1
         else:
             self.player_turn = 0
-
 
     def update_potential_score(self, action, player: Player):
         # action ==> 0 si on garde pas le dé
@@ -89,7 +92,7 @@ class Farkle():
         # [2,3,3,5,6,5] // [0,0,0,0,0,0]
         for i in range(NUM_DICE):
             if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
-                dice_count[self._dices_values[i]-1] += 1  # Compter les occurrences de chaque valeur de dé
+                dice_count[self.dices_values[i]-1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
 
         # SUITE
@@ -130,17 +133,17 @@ class Farkle():
                     player.potential_score += (i + 1) * 100 / 10_000 # Autres triples (2 à 6)
 
             # 1 INDIVIDUELS
-            if self._dices_values[i] == 1 and action[i] == 1:
+            if self.dices_values[i] == 1 and action[i] == 1:
                 player.potential_score += count * 0.0100  # 100 points par 1
             # 5 INDIVIDUELS
-            elif self._dices_values[i] == 5 and action[i] == 1:
+            elif self.dices_values[i] == 5 and action[i] == 1:
                 player.potential_score += count * 0.0050  # 50 points par 5
 
 
     def available_actions_ids(self) -> np.ndarray:
         action = np.zeros((NUM_DICE,))
         for i in range(NUM_DICE):
-            if self._saved_dice == 0:
+            if self._saved_dice[i] == 0:
                 action[i] = 1
         return action
         # alors il va falloir faire avec _saved_dice:
@@ -151,6 +154,40 @@ class Farkle():
         # action = [0, 1, 1, 0, 1, 1]
 
         # if update_potential_score(action)>0 and self._saved_dice[?] == 0
+
+    def available_actions(self, player: Player):
+        dice_count = np.zeros(6)
+        for i in range(NUM_DICE):
+            if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
+                dice_count[int(self.dices_values[i]) - 1] += 1  # Compter les occurrences de chaque valeur de dé
+        # dice_count = [0, 1, 2, 0, 2, 1]
+
+        pairs = (dice_count == 2).sum()
+        quadruples = (dice_count == 4).sum()
+
+        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
+            player.potential_score += 0.1500
+            self.launch_dices()
+            self.available_actions(player)
+            return
+
+        available_actions = []
+        available_actions_mask = []
+
+        for i in range(len(dice_count)):
+            value_to_check = dice_count[i]
+            if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
+                available_actions.append(i + 1)
+
+        for value in self.dices_values:
+            if value in available_actions:
+                available_actions_mask.append(1)
+            else:
+                available_actions_mask.append(0)
+
+        print(available_actions)
+
+        return available_actions_mask
 
 
     def step(self, action: int):
