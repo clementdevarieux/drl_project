@@ -6,69 +6,64 @@ NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
 NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 1
 
-class Player():
+
+class Player:
 
     def __init__(self, player_number):
         self.potential_score = 0
         self.score = 0
-        self._player = player_number
+        self.player = player_number
+
     def add_score(self, points):
         self.score += points
+
     def add_potential_score(self, points):
         self.potential_score += points
+
     def get_player_number(self):
-        return self._player
+        return self.player
 
     def reset(self):
         self.potential_score = 0
         self.score = 0
 
 
-
-class Farkle():
+class Farkle:
 
     def __init__(self):
         self.player_1 = Player(0)
         self.player_2 = Player(1)
 
-        self.dices_values = np.zeros((NUM_DICE,)) # 1 à 6
-        # self._number_of_throw = 0 # indique le numéro du lancer, sera utilisé pour le score intermédiaire
-        self._saved_dice = np.zeros((NUM_DICE,)) # 0 si dé peut être scoré
-        # 1 si dé déjà scoré
-        self._is_game_over = False # passera en True si self._score >= 10_000
-        # self._potential_score = 0.0 # score qu'on peut valider depuis le début du tour actuel du joueur
-        # il faut le multiplier par 10000 si on le fait passer vers score
-        # self._score = 0 # score total cummulé et validé
-        self.player_turn = 0 # 0 pour nous 1 pour l'adversaire
+        self.dices_values = np.zeros((NUM_DICE,), dtype=int)  # 1 à 6.
+        self.saved_dice = np.zeros((NUM_DICE,), dtype=int)  # 0 si dé peut être scored
+        # 1 si dé déjà scored
+        self.is_game_over = False  # passera en True si self.score >= 10_000
+        self.player_turn = 0  # 0 pour nous 1 pour l'adversaire
 
     def launch_dices(self):
         for i in range(NUM_DICE):
-            self.dices_values[i] = random.randint(1, 6)
+            if self.saved_dice[i] == 0:
+                self.dices_values[i] = random.randint(1, 6)
+
+    def reset_dices(self):
+        self.dices_values = np.zeros((NUM_DICE,), dtype=int)
+        self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
 
     def reset(self):
-        self.dices_values = np.zeros((NUM_DICE,))
-        self._saved_dice = np.zeros((NUM_DICE,))
-        self._is_game_over = False
-        # self._potential_score = 0
-        # self._score = 0
-        # self._player = 0
-        # self._number_of_throw = 0
+        self.dices_values = np.zeros((NUM_DICE,), dtype=int)
+        self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
+        self.is_game_over = False
 
     def state_description(self) -> np.ndarray:
-        # VERIFIER COHERENCE ONE HOT
+        # RENDRE CA GENERIQUE POUR LES DEUX JOUEURS
         state = np.zeros((NUM_STATE_FEATURES,))
-        for i in range(NUM_DICE_VALUE_ONE_HOT):
-            dice = i // 6
-            feature = i % 6
-            if self.dices_values[dice] == feature:
-                state[i] = 1.0
-        for i in range(NUM_DICE_SAVED_ONE_HOT):
-            dice = i // 2
-            feature = i % 2
-            if self._saved_dice[dice] == feature:
-                state[i+NUM_DICE_SAVED_ONE_HOT] = 1.0
-        # state[NUM_STATE_FEATURES-1] = self._potential_score
-        state[NUM_STATE_FEATURES-1] = self.player_1.potential_score
+        for i in range(NUM_DICE):
+            dice_value = self.dices_values[i]
+            state[i * 6 + dice_value - 1] = 1.0
+        for i in range(NUM_DICE):
+            is_scorable = self.saved_dice[i]
+            state[NUM_DICE_VALUE_ONE_HOT + i * 2 + is_scorable] = 1.0
+        state[NUM_STATE_FEATURES - 1] = self.player_1.potential_score
         return state
 
     def end_turn_score(self, keep: bool, player: Player):
@@ -76,7 +71,7 @@ class Farkle():
             player.score += player.potential_score * 10_000
         player.potential_score = 0.0
         self.dices_values = np.zeros((NUM_DICE,))
-        self._saved_dice = np.zeros((NUM_DICE,))
+        self.saved_dice = np.zeros((NUM_DICE,))
         if self.player_turn == 0:
             self.player_turn = 1
         else:
@@ -91,8 +86,8 @@ class Farkle():
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
         # [2,3,3,5,6,5] // [0,0,0,0,0,0]
         for i in range(NUM_DICE):
-            if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
-                dice_count[self.dices_values[i]-1] += 1  # Compter les occurrences de chaque valeur de dé
+            if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
+                dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
 
         # SUITE
@@ -127,10 +122,10 @@ class Farkle():
                     # saved dice : [0,0,1,0,0,0]
                     # dice_count : [3,1,0,0,1,0]
                     # action => [0,1,0,1,1,1/0,1/0]
-                    # reboucle sur tous les self._dice_value
+                    # reboucle sur tous les self.dice_value
                     #
                 else:
-                    player.potential_score += (i + 1) * 100 / 10_000 # Autres triples (2 à 6)
+                    player.potential_score += (i + 1) * 100 / 10_000  # Autres triples (2 à 6)
 
             # 1 INDIVIDUELS
             if self.dices_values[i] == 1 and action[i] == 1:
@@ -139,27 +134,12 @@ class Farkle():
             elif self.dices_values[i] == 5 and action[i] == 1:
                 player.potential_score += count * 0.0050  # 50 points par 5
 
-
-    def available_actions_ids(self) -> np.ndarray:
-        action = np.zeros((NUM_DICE,))
-        for i in range(NUM_DICE):
-            if self._saved_dice[i] == 0:
-                action[i] = 1
-        return action
-        # alors il va falloir faire avec _saved_dice:
-        # les actions ça va ressembler à :
-        # on avait les dés: 1 // 3 // 4 // 1 // 5 // 2
-        # avec : keep: Y // N // N // Y // N // N
-        # donc on va tous les relancer quand ils sont pas en keep:
-        # action = [0, 1, 1, 0, 1, 1]
-
-        # if update_potential_score(action)>0 and self._saved_dice[?] == 0
-
     def available_actions(self, player: Player):
-        dice_count = np.zeros(6)
+        dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
-            if self._saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
+            if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
                 dice_count[int(self.dices_values[i]) - 1] += 1  # Compter les occurrences de chaque valeur de dé
+        # dice_results = [3, 2, 3, 5, 6, 5]
         # dice_count = [0, 1, 2, 0, 2, 1]
 
         pairs = (dice_count == 2).sum()
@@ -167,6 +147,7 @@ class Farkle():
 
         if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
             player.potential_score += 0.1500
+            self.reset_dices()
             self.launch_dices()
             self.available_actions(player)
             return
@@ -174,9 +155,10 @@ class Farkle():
         available_actions = []
         available_actions_mask = []
 
-        for i in range(len(dice_count)):
+        for i in range(NUM_DICE):
             value_to_check = dice_count[i]
             if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
+                # pourquoi pas value_to_check == 2 ?
                 available_actions.append(i + 1)
 
         for value in self.dices_values:
@@ -185,22 +167,54 @@ class Farkle():
             else:
                 available_actions_mask.append(0)
 
-        print(available_actions)
-
         return available_actions_mask
 
+    def step(self, action, player: Player):
+        if self._is_game_over:
+            raise ValueError("Game is over, please reset the environment.")
 
-    def step(self, action: int):
+        for i in range(NUM_DICE):
+            if action[i] == 1 and self.saved_dice[i] == 1:
+                raise ValueError(f"Dice {i} already saved, make another action")
+
+        if action[6] == 1 and np.array_equal(self.available_actions(player), [0, 0, 0, 0, 0, 0]):
+            self.update_potential_score(action, player)
+            self.end_turn_score(True, player)
+            return
+
+        # comment on gère quand aucun dé ne rapporte des points ?
+
         pass
-        # donc ici on va lancer tous les dés pour lesquels self._saved_dice == 0
-        # par contre avant, si self._saved_dice sont tous positifs, on les remets tous à 0
+        # donc ici on va lancer tous les dés pour lesquels saved_dice == 0
+        # par contre avant, si self.saved_dice sont tous positifs, on les remet tous à 0
         # ensuite on ajuste les différentes valeurs de dice, saved dice, potential score etc
-        # HYPER IMPORTANT: ici action va correspondre aux dés qu'on décide de garder
-        # en effet, on peut pas choisir desquels on lance, vu qu'on lance tout,
+        # HYPER IMPORTANT : ici action va correspondre aux dés qu'on décide de garder
+        # en effet, on ne peut pas choisir desquels on lance, vu qu'on lance tout,
         # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
 
     def is_game_over(self) -> bool:
-        return self._is_game_over
+        return self.is_game_over
 
     def score(self) -> float:
-        return self._score
+        return self.score
+
+    def print_dices(self):
+        # Représentation des dés basés sur une matrice de 3x3
+        dices_visual = {
+            1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
+            2: ("┌─────┐", "│ ●   │", "│     │", "│   ● │", "└─────┘"),
+            3: ("┌─────┐", "│ ●   │", "│  ●  │", "│   ● │", "└─────┘"),
+            4: ("┌─────┐", "│ ● ● │", "│     │", "│ ● ● │", "└─────┘"),
+            5: ("┌─────┐", "│ ● ● │", "│  ●  │", "│ ● ● │", "└─────┘"),
+            6: ("┌─────┐", "│ ● ● │", "│ ● ● │", "│ ● ● │", "└─────┘"),
+        }
+        # Assemble les dés ligne par ligne
+        lines = [""] * 5
+        for valeur in self.dices_values:
+            face = dices_visual[valeur]
+            for i in range(5):
+                lines[i] += face[i] + "  "  # Ajouter un espace entre les dés
+
+        # Affiche les dés ligne par ligne
+        for line in lines:
+            print(line)
