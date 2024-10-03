@@ -30,10 +30,12 @@ def main():
     # environment.run_game_hashmap(policy)
 
     environnement = Farkle()
-
-    print(environnement.dices_values)
     environnement.launch_dices()
-    print(environnement.dices_values)
-    print(environnement.available_actions_ids())
+    environnement.print_dices()
     print(environnement.available_actions(environnement.player_1))
+
+    environnement.launch_dices()
+    environnement.print_dices()
+    print(environnement.available_actions(environnement.player_1))
+
 main()
