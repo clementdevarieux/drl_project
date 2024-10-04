@@ -36,7 +36,9 @@ def main():
     print(environnement.available_actions(environnement.player_1))
     # environnement.random_action(environnement.player_1)
     print(np.random.choice(environnement.available_actions(environnement.player_1)))
+    print(environnement.state_description())
     # print(environnement.saved_dice)
+
 
 
 main()
