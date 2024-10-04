@@ -209,7 +209,7 @@ class Farkle:
             self.player_turn = 1
             self.reset_dices()
             self.launch_dices()
-            random_action = np.random.choice(self.available_actions(self.player_2))
+            random_action = self.random_action()
             self.step(random_action, self.player_2)
         else:
             self.player_turn = 0
@@ -221,8 +221,36 @@ class Farkle:
         # en effet, on ne peut pas choisir desquels on lance, vu qu'on lance tout,
         # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
 
-    def random_action(self, player: Player):
-        self.step(random_action, player)
+    def random_action(self):
+        # aa = self.available_actions(self.player_2)
+        aa = [2, 1, 2, 0, 2, 2]
+        filtered_action = [int(x) for x in aa if x != 0]
+        if 2 in aa:
+            count = 0
+            for i in range(len(filtered_action)):
+                if i >= len(filtered_action):
+                    break
+                if filtered_action[i] == 2 and count < 2:
+                    filtered_action.pop(i)
+                    count += 1
+
+        num_elements = random.randint(1, len(filtered_action))
+        rand_action = random.sample(filtered_action, num_elements)
+
+        chosen_actions = []
+
+        count = 0
+        for value in aa:
+            if value in rand_action:
+                chosen_actions.append(1)
+                if value == 1 or count > 1:
+                    rand_action.pop(rand_action.index(value))
+                else:
+                    count += 1
+            else:
+                chosen_actions.append(0)
+
+        return chosen_actions
 
     def is_game_over(self) -> bool:
         return self.is_game_over
