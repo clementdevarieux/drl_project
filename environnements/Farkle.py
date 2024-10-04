@@ -33,7 +33,6 @@ class Farkle:
     def __init__(self):
         self.player_1 = Player(0)
         self.player_2 = Player(1)
-
         self.dices_values = np.zeros((NUM_DICE,), dtype=int)  # 1 à 6.
         self.saved_dice = np.zeros((NUM_DICE,), dtype=int)  # 0 si dé peut être scored
         # 1 si dé déjà scored
@@ -53,6 +52,9 @@ class Farkle:
         self.dices_values = np.zeros((NUM_DICE,), dtype=int)
         self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
         self.is_game_over = False
+        self.player_turn = 0
+        self.player_1.reset()
+        self.player_2.reset()
 
     def state_description(self) -> np.ndarray:
         # RENDRE CA GENERIQUE POUR LES DEUX JOUEURS
@@ -69,9 +71,8 @@ class Farkle:
     def end_turn_score(self, keep: bool, player: Player):
         if keep:
             player.score += player.potential_score * 10_000
-        player.potential_score = 0.0
-        self.dices_values = np.zeros((NUM_DICE,))
-        self.saved_dice = np.zeros((NUM_DICE,))
+        player.potential_score = 0
+        self.reset_dices()
         if self.player_turn == 0:
             self.player_turn = 1
         else:
@@ -82,12 +83,6 @@ class Farkle:
         # ==> 1 si on le garde dans le cadre de l'attribution de points
         # action => [x, x, x, x, x, x, end/not_end]
 
-        # CA VA PAS MAIS IL FAUT METTRE CA QUELQUE PART
-        if np.array_equal(self.saved_dice, [1, 1, 1, 1, 1, 1]):
-            self.reset_dices()
-            self.launch_dices()
-            self.update_potential_score(action, player)
-
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
         # [2,3,3,5,6,5] // [0,0,0,0,0,0]
@@ -96,25 +91,6 @@ class Farkle:
                 dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
 
-        # SUITE
-        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]):
-            player.potential_score += 0.1500
-            return
-
-        # 3 PAIRES
-        pairs = (dice_count == 2).sum()
-        if pairs == 3:
-            player.potential_score += 0.1500
-            return
-
-        # 4 DES IDENTIQUES + 1 PAIRE
-        quadruples = (dice_count == 4).sum()
-
-        if quadruples == 1 and pairs == 1:
-            player.potential_score += 0.1500
-            return
-
-        # autres scores
         # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
         # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
         for i in range(6):
@@ -140,6 +116,9 @@ class Farkle:
             elif self.dices_values[i] == 5 and action[i] == 1:
                 player.potential_score += count * 0.0050  # 50 points par 5
 
+        if action[6] == 1:
+            self.end_turn_score(True, player)
+
     def available_actions(self, player: Player):
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
@@ -149,6 +128,7 @@ class Farkle:
         # dice_count = [0, 1, 2, 0, 2, 1]
 
         pairs = (dice_count == 2).sum()
+        thrice = (dice_count == 3).sum()
         quadruples = (dice_count == 4).sum()
 
         if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
@@ -158,20 +138,42 @@ class Farkle:
             self.available_actions(player)
             return
 
+        if thrice == 2:
+            for i in range(NUM_DICE):
+                if i == 0 and dice_count[i] == 3:
+                    player.potential_score += 0.1000
+                if i > 0 and dice_count[i] == 3:
+                    player.potential_score += (i+1) / 100
+            self.reset_dices()
+            self.launch_dices()
+            self.available_actions(player)
+            return
+
+
         available_actions = []
-        available_actions_mask = []
+        available_actions_mask = np.array([])
 
         for i in range(NUM_DICE):
             value_to_check = dice_count[i]
             if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
-                # pourquoi pas value_to_check == 2 ?
                 available_actions.append(i + 1)
 
         for value in self.dices_values:
             if value in available_actions:
-                available_actions_mask.append(1)
+                # si la valeur est 1 ou 5, on append 1, sinon on append 2
+                if value == 1 or value == 5:
+                    available_actions_mask = np.append(available_actions_mask, [1])
+                else:
+                    available_actions_mask = np.append(available_actions_mask, [2])
             else:
-                available_actions_mask.append(0)
+                available_actions_mask= np.append(available_actions_mask, [0])
+
+        if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
+            player.potential_score += 0.05
+            self.reset_dices()
+            self.launch_dices()
+            self.available_actions(player)
+            return
 
         return available_actions_mask
 
@@ -183,17 +185,17 @@ class Farkle:
             if action[i] == 1 and self.saved_dice[i] == 1:
                 raise ValueError(f"Dice {i} already saved, make another action")
 
-        if action[6] == 1 and np.array_equal(self.available_actions(player), [0, 0, 0, 0, 0, 0]):
-            self.update_potential_score(action, player)
-            self.end_turn_score(True, player)
-            return
+        # if action[6] == 1 and np.array_equal(self.available_actions(player), [0, 0, 0, 0, 0, 0]):
+        #     self.update_potential_score(action, player)
+        #     self.end_turn_score(True, player)
+        #     return
 
         # A REVOIR
-        if np.array_equal(self.saved_dice, [1, 1, 1, 1, 1, 1]):
-            self.reset_dices()
-            self.launch_dices()
-            self.step(action, player)
-            return
+        # if np.array_equal(self.saved_dice, [1, 1, 1, 1, 1, 1]):
+        #     self.reset_dices()
+        #     self.launch_dices()
+        #     self.step(action, player)
+        #     return
         # comment on gère quand aucun dé ne rapporte des points ?
 
         self.update_potential_score(action, player)
@@ -219,15 +221,11 @@ class Farkle:
         # en effet, on ne peut pas choisir desquels on lance, vu qu'on lance tout,
         # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
 
-
     def random_action(self, player: Player):
         self.step(random_action, player)
 
     def is_game_over(self) -> bool:
         return self.is_game_over
-
-    def score(self) -> float:
-        return self.score
 
     def print_dices(self):
         # Représentation des dés basés sur une matrice de 3x3
