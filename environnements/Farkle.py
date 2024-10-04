@@ -82,6 +82,12 @@ class Farkle:
         # ==> 1 si on le garde dans le cadre de l'attribution de points
         # action => [x, x, x, x, x, x, end/not_end]
 
+        # CA VA PAS MAIS IL FAUT METTRE CA QUELQUE PART
+        if np.array_equal(self.saved_dice, [1, 1, 1, 1, 1, 1]):
+            self.reset_dices()
+            self.launch_dices()
+            self.update_potential_score(action, player)
+
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
         # [2,3,3,5,6,5] // [0,0,0,0,0,0]
@@ -169,8 +175,8 @@ class Farkle:
 
         return available_actions_mask
 
-    def step(self, action, player: Player):
-        if self._is_game_over:
+    def step(self, action: list, player: Player):
+        if self.is_game_over:
             raise ValueError("Game is over, please reset the environment.")
 
         for i in range(NUM_DICE):
@@ -182,15 +188,40 @@ class Farkle:
             self.end_turn_score(True, player)
             return
 
+        # A REVOIR
+        if np.array_equal(self.saved_dice, [1, 1, 1, 1, 1, 1]):
+            self.reset_dices()
+            self.launch_dices()
+            self.step(action, player)
+            return
         # comment on gère quand aucun dé ne rapporte des points ?
 
-        pass
+        self.update_potential_score(action, player)
+
+        if player.score >= 10_000:
+            print(f"Le joueur {player} a gagné !!")
+            self.is_game_over = True
+            return
+
+        if self.player_turn == 0:
+            self.player_turn = 1
+            self.reset_dices()
+            self.launch_dices()
+            random_action = np.random.choice(self.available_actions(self.player_2))
+            self.step(random_action, self.player_2)
+        else:
+            self.player_turn = 0
+
         # donc ici on va lancer tous les dés pour lesquels saved_dice == 0
         # par contre avant, si self.saved_dice sont tous positifs, on les remet tous à 0
         # ensuite on ajuste les différentes valeurs de dice, saved dice, potential score etc
         # HYPER IMPORTANT : ici action va correspondre aux dés qu'on décide de garder
         # en effet, on ne peut pas choisir desquels on lance, vu qu'on lance tout,
         # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
+
+
+    def random_action(self, player: Player):
+        self.step(random_action, player)
 
     def is_game_over(self) -> bool:
         return self.is_game_over
