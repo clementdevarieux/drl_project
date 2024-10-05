@@ -3,6 +3,7 @@ from environnements.LineWorld import LineWorld
 from environnements.GridWorld import GridWorld
 from environnements.Farkle import Farkle
 import numpy as np
+import random
 
 # Importer la fonction policy_iteration depuis PolicyIteration.py
 from algorithmes.PolicyIteration import policy_iteration
@@ -31,14 +32,9 @@ def main():
     # environment.run_game_hashmap(policy)
 
     environnement = Farkle()
-    environnement.launch_dices()
-    environnement.print_dices()
-    print(environnement.available_actions(environnement.player_1))
-    # environnement.random_action(environnement.player_1)
-    print(np.random.choice(environnement.available_actions(environnement.player_1)))
-    print(environnement.state_description())
-    # print(environnement.saved_dice)
+    environnement.reset()
+    environnement.play_game_random()
 
 
-
-main()
+for _ in range(1):
+    main()
