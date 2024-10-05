@@ -10,8 +10,8 @@ NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 1
 class Player:
 
     def __init__(self, player_number):
-        self.potential_score = 0
-        self.score = 0
+        self.potential_score = 0.0
+        self.score = 0.0
         self.player = player_number
 
     def add_score(self, points):
@@ -24,8 +24,8 @@ class Player:
         return self.player
 
     def reset(self):
-        self.potential_score = 0
-        self.score = 0
+        self.potential_score = 0.0
+        self.score = 0.0
 
 
 class Farkle:
@@ -86,10 +86,15 @@ class Farkle:
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
         # [2,3,3,5,6,5] // [0,0,0,0,0,0]
+        print("self.dice_value:")
+        print(self.dices_values)
+
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
                 dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
+        print("dice count:")
+        print(dice_count)
 
         # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
         # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
@@ -111,10 +116,10 @@ class Farkle:
 
             # 1 INDIVIDUELS
             if self.dices_values[i] == 1 and action[i] == 1:
-                player.potential_score += count * 0.0100  # 100 points par 1
+                player.potential_score += 0.0100  # 100 points par 1
             # 5 INDIVIDUELS
             elif self.dices_values[i] == 5 and action[i] == 1:
-                player.potential_score += count * 0.0050  # 50 points par 5
+                player.potential_score += 0.0050  # 50 points par 5
 
         if action[6] == 1:
             self.end_turn_score(True, player)
@@ -135,20 +140,17 @@ class Farkle:
             player.potential_score += 0.1500
             self.reset_dices()
             self.launch_dices()
-            self.available_actions(player)
-            return
+            return self.available_actions(player)
 
         if thrice == 2:
             for i in range(NUM_DICE):
                 if i == 0 and dice_count[i] == 3:
                     player.potential_score += 0.1000
                 if i > 0 and dice_count[i] == 3:
-                    player.potential_score += (i+1) / 100
+                    player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
-            self.available_actions(player)
-            return
-
+            return self.available_actions(player)
 
         available_actions = []
         available_actions_mask = np.array([])
@@ -166,14 +168,13 @@ class Farkle:
                 else:
                     available_actions_mask = np.append(available_actions_mask, [2])
             else:
-                available_actions_mask= np.append(available_actions_mask, [0])
+                available_actions_mask = np.append(available_actions_mask, [0])
 
         if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
             player.potential_score += 0.05
             self.reset_dices()
             self.launch_dices()
-            self.available_actions(player)
-            return
+            return self.available_actions(player)
 
         return available_actions_mask
 
@@ -221,9 +222,9 @@ class Farkle:
         # en effet, on ne peut pas choisir desquels on lance, vu qu'on lance tout,
         # on choisit uniquement si on garde un dé ou pas, et si on valide le score ou pas
 
-    def random_action(self):
-        # aa = self.available_actions(self.player_2)
-        aa = [2, 1, 2, 0, 2, 2]
+    def random_action(self, player: Player):
+        aa = self.available_actions(player)
+        # aa = [2, 1, 2, 0, 2, 2]
         filtered_action = [int(x) for x in aa if x != 0]
         if 2 in aa:
             count = 0
@@ -249,6 +250,8 @@ class Farkle:
                     count += 1
             else:
                 chosen_actions.append(0)
+
+        chosen_actions.append(random.randint(0, 1))
 
         return chosen_actions
 
