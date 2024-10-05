@@ -38,6 +38,37 @@ class Farkle:
         # 1 si dé déjà scored
         self.is_game_over = False  # passera en True si self.score >= 10_000
         self.player_turn = 0  # 0 pour nous 1 pour l'adversaire
+        self.turn = 0
+        self.scoring_rules = {
+            (1, 1): 0.01,
+            (1, 2): 0.02,
+            (1, 3): 0.1,
+            (1, 4): 0.2,
+            (1, 5): 0.4,
+            (1, 6): 0.8,
+            (2, 3): 0.02,
+            (2, 4): 0.04,
+            (2, 5): 0.08,
+            (2, 6): 0.16,
+            (3, 3): 0.03,
+            (3, 4): 0.06,
+            (3, 5): 0.12,
+            (3, 6): 0.24,
+            (4, 3): 0.04,
+            (4, 4): 0.08,
+            (4, 5): 0.16,
+            (4, 6): 0.32,
+            (5, 1): 0.005,
+            (5, 2): 0.01,
+            (5, 3): 0.05,
+            (5, 4): 0.1,
+            (5, 5): 0.2,
+            (5, 6): 0.4,
+            (6, 3): 0.06,
+            (6, 4): 0.12,
+            (6, 5): 0.24,
+            (6, 6): 0.48
+        }
 
     def launch_dices(self):
         for i in range(NUM_DICE):
@@ -55,6 +86,7 @@ class Farkle:
         self.player_turn = 0
         self.player_1.reset()
         self.player_2.reset()
+        self.turn = 0
 
     def state_description(self) -> np.ndarray:
         # RENDRE CA GENERIQUE POUR LES DEUX JOUEURS
@@ -71,6 +103,10 @@ class Farkle:
     def end_turn_score(self, keep: bool, player: Player):
         if keep:
             player.score += player.potential_score * 10_000
+            if player.score >= 10_000:
+                print(f"Le joueur {player} a gagné !!")
+                self.is_game_over = True
+                return
         player.potential_score = 0
         self.reset_dices()
         if self.player_turn == 0:
@@ -78,51 +114,67 @@ class Farkle:
         else:
             self.player_turn = 0
 
-    def update_potential_score(self, action, player: Player):
+    def update_saved_dice(self, action):
+        for i in range(NUM_DICE):
+            if action[i] == 1:
+                self.saved_dice[i] = 1
+
+
+
+    def update_potential_score(self, action):
+        if self.player_turn == 0:
+            player = self.player_1
+        else:
+            player = self.player_2
+
         # action ==> 0 si on garde pas le dé
         # ==> 1 si on le garde dans le cadre de l'attribution de points
         # action => [x, x, x, x, x, x, end/not_end]
-
+        print(f"action du joueur: {action}")
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
-        # [2,3,3,5,6,5] // [0,0,0,0,0,0]
-        print("self.dice_value:")
-        print(self.dices_values)
 
         for i in range(NUM_DICE):
-            if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
+            if self.saved_dice[i] == 0 and action[i] == 1:  # Ignorer les dés non sauvegardés et prendre en compte l'action
                 dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
-        print("dice count:")
-        print(dice_count)
 
-        # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
-        # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
-        for i in range(6):
+        for i in range(NUM_DICE):
             count = dice_count[i]
+            if (i+1, count) in self.scoring_rules:
+                player.potential_score += self.scoring_rules[(i+1, count)]
 
-            # 3 DES IDENTIQUES
-            if count == 3:
-                if i == 0:  # Trois 1
-                    player.potential_score += 0.1000  # 1000 points pour trois 1
-                    # résultats de dés :[2,1,5,1,1,5]
-                    # saved dice : [0,0,1,0,0,0]
-                    # dice_count : [3,1,0,0,1,0]
-                    # action => [0,1,0,1,1,1/0,1/0]
-                    # reboucle sur tous les self.dice_value
-                    #
-                else:
-                    player.potential_score += (i + 1) * 100 / 10_000  # Autres triples (2 à 6)
+        # # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
+        # # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
+        # for i in range(6):
+        #     count = dice_count[i]
+        #
+        #     # 3 DES IDENTIQUES
+        #     if count == 3:
+        #         if i == 0:  # Trois 1
+        #             player.potential_score += 0.1000  # 1000 points pour trois 1
+        #
+        #             # résultats de dés :[2,1,5,1,1,5]
+        #             # saved dice : [0,0,1,0,0,0]
+        #             # dice_count : [3,1,0,0,1,0]
+        #             # action => [0,1,0,1,1,1/0,1/0]
+        #             # reboucle sur tous les self.dice_value
+        #             #
+        #         else:
+        #             player.potential_score += (i + 1) * 100 / 10_000  # Autres triples (2 à 6)
+        #
+        #     # 1 INDIVIDUELS
+        #     if self.dices_values[i] == 1 and action[i] == 1:
+        #         player.potential_score += 0.0100  # 100 points par 1
+        #     # 5 INDIVIDUELS
+        #     elif self.dices_values[i] == 5 and action[i] == 1:
+        #         player.potential_score += 0.0050  # 50 points par 5
 
-            # 1 INDIVIDUELS
-            if self.dices_values[i] == 1 and action[i] == 1:
-                player.potential_score += 0.0100  # 100 points par 1
-            # 5 INDIVIDUELS
-            elif self.dices_values[i] == 5 and action[i] == 1:
-                player.potential_score += 0.0050  # 50 points par 5
+        self.update_saved_dice(action)
 
-        if action[6] == 1:
-            self.end_turn_score(True, player)
+
+
+
 
     def available_actions(self, player: Player):
         dice_count = np.zeros(NUM_DICE)
@@ -140,6 +192,7 @@ class Farkle:
             player.potential_score += 0.1500
             self.reset_dices()
             self.launch_dices()
+            self.print_dices()
             return self.available_actions(player)
 
         if thrice == 2:
@@ -150,6 +203,7 @@ class Farkle:
                     player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
+            self.print_dices()
             return self.available_actions(player)
 
         available_actions = []
@@ -171,10 +225,18 @@ class Farkle:
                 available_actions_mask = np.append(available_actions_mask, [0])
 
         if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
-            player.potential_score += 0.05
-            self.reset_dices()
-            self.launch_dices()
-            return self.available_actions(player)
+                player.potential_score += 0.05
+                self.reset_dices()
+                self.launch_dices()
+                self.print_dices()
+                return self.available_actions(player)
+            # else:
+            #     # aucune action n'est possible, et au moins un dé était sauvegardé
+            #     player.potential_score = 0
+            #     if self.player_turn == 0:
+            #         self.player_turn = 1
+            #     else:
+            #         self.player_turn = 0
 
         return available_actions_mask
 
@@ -186,6 +248,16 @@ class Farkle:
             if action[i] == 1 and self.saved_dice[i] == 1:
                 raise ValueError(f"Dice {i} already saved, make another action")
 
+        if sum(action) == 0.0 or len(action) == 0:
+            player.potential_score = 0.0
+            if self.player_turn == 0:
+                self.player_turn = 1
+            else:
+                self.player_turn = 0
+            return
+
+        if self.player_turn == 0:
+            self.turn += 1
         # if action[6] == 1 and np.array_equal(self.available_actions(player), [0, 0, 0, 0, 0, 0]):
         #     self.update_potential_score(action, player)
         #     self.end_turn_score(True, player)
@@ -199,21 +271,23 @@ class Farkle:
         #     return
         # comment on gère quand aucun dé ne rapporte des points ?
 
-        self.update_potential_score(action, player)
+        self.update_potential_score(action)
 
-        if player.score >= 10_000:
-            print(f"Le joueur {player} a gagné !!")
-            self.is_game_over = True
-            return
+        if action[6] == 1:
+            self.end_turn_score(True, player)
+            if self.is_game_over:
+                exit()
 
         if self.player_turn == 0:
             self.player_turn = 1
             self.reset_dices()
             self.launch_dices()
-            random_action = self.random_action()
+            self.print_dices()
+            random_action = self.random_action(self.player_2)
             self.step(random_action, self.player_2)
         else:
             self.player_turn = 0
+            self.reset_dices()
 
         # donc ici on va lancer tous les dés pour lesquels saved_dice == 0
         # par contre avant, si self.saved_dice sont tous positifs, on les remet tous à 0
@@ -259,6 +333,12 @@ class Farkle:
         return self.is_game_over
 
     def print_dices(self):
+        print("_-_-_-_-_-_-Farkle-_-_-_-_-_-_")
+        print(f"Tour n°{self.turn}")
+        if self.player_turn == 0:
+            print("C'est le tour du joueur 1")
+        else:
+            print("C'est le tour du joueur 2")
         # Représentation des dés basés sur une matrice de 3x3
         dices_visual = {
             1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
@@ -278,3 +358,23 @@ class Farkle:
         # Affiche les dés ligne par ligne
         for line in lines:
             print(line)
+
+        print(f"Dés déjà sauvegardés: {self.saved_dice}")
+
+        if self.player_turn == 0:
+            print(f"Score potentiel en cours: {self.player_1.potential_score}")
+        else:
+            print(f"Score potentiel en cours: {self.player_2.potential_score}")
+
+        print(f"Score du joueur 1: {self.player_1.score}")
+        print(f"Score du joueur 2: {self.player_2.score}")
+
+
+
+    def play_game_random(self):
+        self.reset()
+        while not self.is_game_over:
+            self.launch_dices()
+            self.print_dices()
+            self.step(self.random_action(self.player_1), self.player_1)
+
