@@ -33,6 +33,7 @@ class Farkle:
     def __init__(self):
         self.player_1 = Player(0)
         self.player_2 = Player(1)
+        self.score = 0
         self.dices_values = np.zeros((NUM_DICE,), dtype=int)  # 1 à 6.
         self.saved_dice = np.zeros((NUM_DICE,), dtype=int)  # 0 si dé peut être scored
         # 1 si dé déjà scored
@@ -83,6 +84,7 @@ class Farkle:
         self.dices_values = np.zeros((NUM_DICE,), dtype=int)
         self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
         self.is_game_over = False
+        self.score = 0
         self.player_turn = 0
         self.player_1.reset()
         self.player_2.reset()
@@ -106,6 +108,10 @@ class Farkle:
             if player.score >= 10_000:
                 # print(f"Le joueur {player} a gagné !!")
                 self.is_game_over = True
+                if self.player_turn == 0:
+                    self.score += 1
+                else:
+                    self.score -= 1
                 return
         player.potential_score = 0
         self.reset_dices()
@@ -133,14 +139,15 @@ class Farkle:
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
 
         for i in range(NUM_DICE):
-            if self.saved_dice[i] == 0 and action[i] == 1:  # Ignorer les dés non sauvegardés et prendre en compte l'action
+            if self.saved_dice[i] == 0 and action[
+                i] == 1:  # Ignorer les dés non sauvegardés et prendre en compte l'action
                 dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_count = [0, 1, 2, 0, 2, 1]
 
         for i in range(NUM_DICE):
             count = dice_count[i]
-            if (i+1, count) in self.scoring_rules:
-                player.potential_score += self.scoring_rules[(i+1, count)]
+            if (i + 1, count) in self.scoring_rules:
+                player.potential_score += self.scoring_rules[(i + 1, count)]
 
         # # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
         # # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
@@ -170,10 +177,6 @@ class Farkle:
 
         self.update_saved_dice(action)
 
-
-
-
-
     def available_actions(self, player: Player):
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
@@ -191,7 +194,7 @@ class Farkle:
             player.potential_score += 0.1500
             self.reset_dices()
             self.launch_dices()
-            self.print_dices()
+            # self.print_dices()
             return self.available_actions(player)
 
         if thrice == 2:
@@ -202,7 +205,7 @@ class Farkle:
                     player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
-            self.print_dices()
+            # self.print_dices()
             return self.available_actions(player)
 
         available_actions = []
@@ -220,7 +223,7 @@ class Farkle:
             else:
                 dices_values_without_saved_dices.append(0)
 
-        print(f"dices_values_without_saved_dices: {dices_values_without_saved_dices}")
+        # print(f"dices_values_without_saved_dices: {dices_values_without_saved_dices}")
 
         for value in dices_values_without_saved_dices:
             if value in available_actions:
@@ -233,18 +236,18 @@ class Farkle:
                 available_actions_mask = np.append(available_actions_mask, [0])
 
         if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
-                player.potential_score += 0.05
-                self.reset_dices()
-                self.launch_dices()
-                self.print_dices()
-                return self.available_actions(player)
+            player.potential_score += 0.05
+            self.reset_dices()
+            self.launch_dices()
+            # self.print_dices()
+            return self.available_actions(player)
 
         if self.saved_dice.sum() == 5 and available_actions_mask.sum() == 1:
             dice_value = [int(x) for x in dices_values_without_saved_dices if x != 0]
-            player.potential_score += self.scoring_rules[(dice_value[0],1)]
+            player.potential_score += self.scoring_rules[(dice_value[0], 1)]
             self.reset_dices()
             self.launch_dices()
-            self.print_dices()
+            # self.print_dices()
             return self.available_actions(player)
 
         if 0 not in available_actions_mask:
@@ -253,7 +256,7 @@ class Farkle:
                     player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
             self.reset_dices()
             self.launch_dices()
-            self.print_dices()
+            # self.print_dices()
             return self.available_actions(player)
 
             # else:
@@ -282,7 +285,7 @@ class Farkle:
             self.end_turn_score(False, player)
             if self.player_turn == 1:
                 self.launch_dices()
-                self.print_dices()
+                # self.print_dices()
                 random_action = self.random_action(self.player_2)
                 return self.step(random_action)
             else:
@@ -290,7 +293,7 @@ class Farkle:
 
         for i in range(NUM_DICE):
             if action[i] == 1 and self.saved_dice[i] == 1:
-                raise ValueError(f"Dice {i+1} already saved, make another action")
+                raise ValueError(f"Dice {i + 1} already saved, make another action")
 
         self.update_potential_score(action)
 
@@ -300,7 +303,7 @@ class Farkle:
                 return
             if self.player_turn == 1:
                 self.launch_dices()
-                self.print_dices()
+                # self.print_dices()
                 random_action = self.random_action(self.player_2)
                 self.step(random_action)
 
@@ -358,6 +361,9 @@ class Farkle:
     def is_game_over(self) -> bool:
         return self.is_game_over
 
+    def get_score(self) -> int:
+        return self.score
+
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_")
         print(f"Tour n°{self.turn}")
@@ -395,18 +401,16 @@ class Farkle:
         print(f"Score du joueur 1: {self.player_1.score}")
         print(f"Score du joueur 2: {self.player_2.score}")
 
-
-
     def play_game_random(self):
         self.reset()
         while not self.is_game_over:
             self.launch_dices()
-            self.print_dices()
+            # self.print_dices()
             self.step(self.random_action(self.player_1))
 
     def player_2_random_play(self):
         self.launch_dices()
-        self.print_dices()
+        # self.print_dices()
         random_action = self.random_action(self.player_2)
         self.step(random_action)
 
@@ -434,14 +438,13 @@ class Farkle:
                     self.player_turn == 0
                     continue
 
-
             print(f"choose from available actions: {aa}")
 
             while True:
                 var = input("write all actions in one line separated by spaces: ")
                 user_input = list(map(int, var.split()))
 
-                actions = [0,0,0,0,0,0]
+                actions = [0, 0, 0, 0, 0, 0]
                 for value in user_input:
                     actions[value - 1] = 1
                 print(actions)
