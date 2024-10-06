@@ -13,8 +13,11 @@ from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 def main():
     environnement = Farkle()
     environnement.reset()
-    environnement.play_game_random()
+    # environnement.play_game_random()
+    environnement
+    environnement.run_game_GUI()
 
 
-for i in tqdm(range(10000)):
+# for i in tqdm(range(1)):
+for i in range(1):
     main()

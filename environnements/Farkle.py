@@ -191,7 +191,7 @@ class Farkle:
             player.potential_score += 0.1500
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
+            self.print_dices()
             return self.available_actions(player)
 
         if thrice == 2:
@@ -202,7 +202,7 @@ class Farkle:
                     player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
+            self.print_dices()
             return self.available_actions(player)
 
         available_actions = []
@@ -213,7 +213,16 @@ class Farkle:
             if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
                 available_actions.append(i + 1)
 
-        for value in self.dices_values:
+        dices_values_without_saved_dices = []
+        for i in range(NUM_DICE):
+            if self.saved_dice[i] == 0:
+                dices_values_without_saved_dices.append(self.dices_values[i])
+            else:
+                dices_values_without_saved_dices.append(0)
+
+        print(f"dices_values_without_saved_dices: {dices_values_without_saved_dices}")
+
+        for value in dices_values_without_saved_dices:
             if value in available_actions:
                 # si la valeur est 1 ou 5, on append 1, sinon on append 2
                 if value == 1 or value == 5:
@@ -227,8 +236,26 @@ class Farkle:
                 player.potential_score += 0.05
                 self.reset_dices()
                 self.launch_dices()
-                # self.print_dices()
+                self.print_dices()
                 return self.available_actions(player)
+
+        if self.saved_dice.sum() == 5 and available_actions_mask.sum() == 1:
+            dice_value = [int(x) for x in dices_values_without_saved_dices if x != 0]
+            player.potential_score += self.scoring_rules[(dice_value[0],1)]
+            self.reset_dices()
+            self.launch_dices()
+            self.print_dices()
+            return self.available_actions(player)
+
+        if 0 not in available_actions_mask:
+            for i in range(len(dice_count)):
+                if dice_count[i] != 0:
+                    player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
+            self.reset_dices()
+            self.launch_dices()
+            self.print_dices()
+            return self.available_actions(player)
+
             # else:
             #     # aucune action n'est possible, et au moins un dé était sauvegardé
             #     player.potential_score = 0
@@ -255,7 +282,7 @@ class Farkle:
             self.end_turn_score(False, player)
             if self.player_turn == 1:
                 self.launch_dices()
-                # self.print_dices()
+                self.print_dices()
                 random_action = self.random_action(self.player_2)
                 return self.step(random_action)
             else:
@@ -273,11 +300,9 @@ class Farkle:
                 return
             if self.player_turn == 1:
                 self.launch_dices()
-                # self.print_dices()
+                self.print_dices()
                 random_action = self.random_action(self.player_2)
                 self.step(random_action)
-
-
 
     def random_action(self, player: Player):
         aa = self.available_actions(player)
@@ -376,6 +401,74 @@ class Farkle:
         self.reset()
         while not self.is_game_over:
             self.launch_dices()
-            # self.print_dices()
+            self.print_dices()
             self.step(self.random_action(self.player_1))
 
+    def player_2_random_play(self):
+        self.launch_dices()
+        self.print_dices()
+        random_action = self.random_action(self.player_2)
+        self.step(random_action)
+
+    def run_game_GUI(self):
+        self.reset()
+        while not self.is_game_over:
+            while not self.is_game_over and self.player_turn == 1:
+                self.player_2_random_play()
+
+            self.launch_dices()
+            self.print_dices()
+            aa = self.available_actions(self.player_1)
+
+            if sum(aa) == 0.0:
+                self.end_turn_score(False, self.player_1)
+                if self.player_turn == 1:
+                    while not self.is_game_over and self.player_turn == 1:
+                        # self.launch_dices()
+                        # self.print_dices()
+                        # random_action = self.random_action(self.player_2)
+                        # self.step(random_action)
+                        self.player_2_random_play()
+
+                    self.reset_dices()
+                    self.player_turn == 0
+                    continue
+
+
+            print(f"choose from available actions: {aa}")
+
+            while True:
+                var = input("write all actions in one line separated by spaces: ")
+                user_input = list(map(int, var.split()))
+
+                actions = [0,0,0,0,0,0]
+                for value in user_input:
+                    actions[value - 1] = 1
+                print(actions)
+
+                if 2 in aa:
+                    print(aa)
+                    count = 0
+                    for i in range(NUM_DICE):
+                        if aa[i] == 2 and actions[i] == 1:
+                            count += 1
+                    if count <= 2:
+                        print("Please select at least a combinaison of 3 of a kind for dice values outside of 1 or 5\n")
+                        continue
+
+                for i in range(NUM_DICE):
+                    wrong_input = False
+                    if actions[i] == 1 and (aa[i] != 1 and aa[i] != 2):
+                        print("dice not available, please try again\n")
+                        wrong_input = True
+                        break
+                if not wrong_input:
+                    break
+
+            print(f'action input {actions}')
+
+            var = input("Do you wish to end turn or reroll ? : 1 or 0\n")
+
+            actions.append(int(var))
+
+            self.step(actions)
