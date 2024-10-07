@@ -370,8 +370,7 @@ class FarkleGui:
         return self.reward
 
     def print_dices(self):
-        print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_")
-        print(f"Tour n°{self.turn}")
+        print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
         if self.player_turn == 0:
             print("C'est le tour du joueur 1")
         else:
@@ -445,15 +444,17 @@ class FarkleGui:
         for line in lines:
             print(line)
 
-        print(f"Dés déjà sauvegardés: {self.saved_dice}")
+        print("n° 1   /    2   /    3   /    4   /    5   /    6\n")
+
+        print(f"Dés déjà sauvegardés: {self.saved_dice}\n")
 
         if self.player_turn == 0:
-            print(f"Score potentiel en cours: {self.player_1.potential_score}")
+            print(f"Score potentiel en cours: {self.player_1.potential_score * 10000}")
         else:
-            print(f"Score potentiel en cours: {self.player_2.potential_score}")
+            print(f"Score potentiel en cours: {self.player_2.potential_score * 10000}")
 
-        print(f"Score du joueur 1: {self.player_1.score}")
-        print(f"Score du joueur 2: {self.player_2.score}")
+        print(f"Score du joueur 1: {self.player_1.score * 10000}")
+        print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
 
     def play_game_random(self):
         self.reset()
@@ -467,6 +468,13 @@ class FarkleGui:
         self.print_dices()
         random_action = self.random_action(self.player_2)
         self.step(random_action)
+
+    def action_to_int(self, action):
+        action_int = 0
+        for i in range(len(action)):
+            if action[i] != 0:
+                action_int += 2**i
+        return action_int
 
     def run_game_GUI(self):
         self.reset()

@@ -29,8 +29,7 @@ def main():
         environnement.run_game_GUI()
 
     # run_random_game(100)
-    run_gui_game()
-
+    # run_gui_game()
 
 for i in range(1):
     main()
