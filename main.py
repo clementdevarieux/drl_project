@@ -4,8 +4,6 @@ import numpy as np
 import random
 from tqdm import tqdm
 import time
-
-# Importer la fonction policy_iteration depuis PolicyIteration.py
 from algorithmes.PolicyIteration import policy_iteration
 from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 
@@ -30,9 +28,9 @@ def main():
         environnement = FarkleGui()
         environnement.run_game_GUI()
 
-    run_random_game(100)
-    # run_gui_game()
+    # run_random_game(100)
+    run_gui_game()
 
 
-for i in range(10):
+for i in range(1):
     main()

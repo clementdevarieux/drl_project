@@ -247,7 +247,12 @@ class Farkle:
             # self.print_dices()
             return self.available_actions(player)
 
-        if 0 not in available_actions_mask:
+        available_actions_without_zeros = [int(x) for x in available_actions_mask if x != 0]
+        # [0,1,1] -> [1,1]
+        saved_dices_without_zeros = [int(x) for x in self.saved_dice if x != 0]
+        # [1, 0, 0] -> [1]
+
+        if len(available_actions_without_zeros + saved_dices_without_zeros) == 6:
             for i in range(len(dice_count)):
                 if dice_count[i] != 0:
                     player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
@@ -255,14 +260,6 @@ class Farkle:
             self.launch_dices()
             # self.print_dices()
             return self.available_actions(player)
-
-            # else:
-            #     # aucune action n'est possible, et au moins un dé était sauvegardé
-            #     player.potential_score = 0
-            #     if self.player_turn == 0:
-            #         self.player_turn = 1
-            #     else:
-            #         self.player_turn = 0
 
         return available_actions_mask
 
