@@ -28,7 +28,7 @@ class Player:
         self.score = 0.0
 
 
-class Farkle:
+class FarkleGui:
 
     def __init__(self):
         self.player_1 = Player(0)
@@ -38,7 +38,6 @@ class Farkle:
         # 1 si dé déjà scored
         self.is_game_over = False  # passera en True si self.score >= 1.0
         self.player_turn = 0  # 0 pour nous 1 pour l'adversaire
-        self.turn = 0
         self.reward = 0
         self.scoring_rules = {
             (1, 1): 0.01,
@@ -84,10 +83,9 @@ class Farkle:
         self.dices_values = np.zeros((NUM_DICE,), dtype=int)
         self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
         self.is_game_over = False
-        self.player_turn = random.randint(0,1)
+        self.player_turn = 0
         self.player_1.reset()
         self.player_2.reset()
-        self.turn = 0
         self.reward = 0
 
     def state_description(self) -> np.ndarray:
@@ -107,7 +105,7 @@ class Farkle:
         if keep:
             player.score += player.potential_score
             if player.score >= 1.0:
-                # print(f"Le joueur {player} a gagné !!")
+                print(f"Le joueur {self.player_turn + 1} a gagné !!")
                 self.is_game_over = True
                 return
         player.potential_score = 0
@@ -147,12 +145,7 @@ class Farkle:
 
         self.update_saved_dice(action)
 
-    def available_actions(self):
-        if self.player_turn == 0:
-            player = self.player_1
-        else:
-            player = self.player_2
-
+    def available_actions(self, player: Player):
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
@@ -168,8 +161,8 @@ class Farkle:
             player.potential_score += 0.1500
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
+            self.print_dices()
+            return self.available_actions(player)
 
         if thrice == 2:
             for i in range(NUM_DICE):
@@ -179,8 +172,8 @@ class Farkle:
                     player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
+            self.print_dices()
+            return self.available_actions(player)
 
         available_actions = []
         available_actions_mask = np.array([])
@@ -211,16 +204,16 @@ class Farkle:
             player.potential_score += 0.05
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
+            self.print_dices()
+            return self.available_actions(player)
 
         if self.saved_dice.sum() == 5 and available_actions_mask.sum() == 1:
             dice_value = [int(x) for x in dices_values_without_saved_dices if x != 0]
             player.potential_score += self.scoring_rules[(dice_value[0], 1)]
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
+            self.print_dices()
+            return self.available_actions(player)
 
         available_actions_without_zeros = [int(x) for x in available_actions_mask if x != 0]
         # [0,1,1] -> [1,1]
@@ -233,8 +226,8 @@ class Farkle:
                     player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
+            self.print_dices()
+            return self.available_actions(player)
 
         return available_actions_mask
 
@@ -251,8 +244,8 @@ class Farkle:
             self.end_turn_score(False, player)
             if self.player_turn == 1:
                 self.launch_dices()
-                # self.print_dices()
-                random_action = self.random_action()
+                self.print_dices()
+                random_action = self.random_action(self.player_2)
                 return self.step(random_action)
             else:
                 return
@@ -273,12 +266,12 @@ class Farkle:
                 return
             if self.player_turn == 1:
                 self.launch_dices()
-                # self.print_dices()
-                random_action = self.random_action()
+                self.print_dices()
+                random_action = self.random_action(self.player_2)
                 self.step(random_action)
 
-    def random_action(self):
-        aa = self.available_actions()
+    def random_action(self, player: Player):
+        aa = self.available_actions(player)
         # aa = [2, 1, 2, 0, 2, 2]
         filtered_action = [int(x) for x in aa if x != 0]
 
@@ -318,6 +311,9 @@ class Farkle:
         chosen_actions.append(random.randint(0, 1))
 
         return chosen_actions
+
+    def is_game_over(self) -> bool:
+        return self.is_game_over
 
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
@@ -392,7 +388,7 @@ class Farkle:
         for line in lines:
             print(line)
 
-        print("n°: 1  /    2   /    3   /    4   /    5   /    6\n")
+        print("n° 1   /    2   /    3   /    4   /    5   /    6\n")
 
         print(f"Dés déjà sauvegardés: {self.saved_dice}\n")
 
@@ -403,17 +399,11 @@ class Farkle:
 
         print(f"Score du joueur 1: {self.player_1.score * 10000}")
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
-    def play_game_random(self):
-        self.reset()
-        while not self.is_game_over:
-            self.launch_dices()
-            # self.print_dices()
-            self.step(self.random_action())
 
     def player_2_random_play(self):
         self.launch_dices()
-        # self.print_dices()
-        random_action = self.random_action()
+        self.print_dices()
+        random_action = self.random_action(self.player_2)
         self.step(random_action)
 
     def action_to_int(self, action):
@@ -423,9 +413,63 @@ class Farkle:
                 action_int += 2**i
         return action_int
 
-    def int_to_action(self, n):
-        action = [0] * 7
-        for i in range(7):
-            if n & (1 << i):
-                action[i] = 1
-        return action
+    def run_game_GUI(self):
+        # self.reset()
+        while not self.is_game_over:
+            while not self.is_game_over and self.player_turn == 1:
+                self.player_2_random_play()
+
+            self.launch_dices()
+            self.print_dices()
+            aa = self.available_actions(self.player_1)
+
+            if sum(aa) == 0.0:
+                self.end_turn_score(False, self.player_1)
+                print("Fin du tour, aucune combinaison possible")
+                if self.player_turn == 1:
+                    while not self.is_game_over and self.player_turn == 1:
+                        self.player_2_random_play()
+
+                    self.reset_dices()
+                    self.player_turn = 0
+                    continue
+
+            print(f"choose from available actions: {aa}")
+
+            while True:
+                var = input("write all actions in one line separated by spaces: ")
+                user_input = list(map(int, var.split()))
+
+                actions = [0, 0, 0, 0, 0, 0]
+                for value in user_input:
+                    actions[value - 1] = 1
+                print(actions)
+
+                if 2 in aa:
+                    count = 0
+                    picked_2 = False
+                    for i in range(NUM_DICE):
+                        if aa[i] == 2 and actions[i] == 1:
+                            picked_2 = True
+                            count += 1
+                    if count <= 2 and picked_2:
+                        print(count)
+                        print("Please select at least a combinaison of 3 of a kind for dice values outside of 1 or 5\n")
+                        continue
+
+                for i in range(NUM_DICE):
+                    wrong_input = False
+                    if actions[i] == 1 and (aa[i] != 1 and aa[i] != 2):
+                        print("dice not available, please try again\n")
+                        wrong_input = True
+                        break
+                if not wrong_input:
+                    break
+
+            print(f'action input {actions}')
+
+            var = input("Do you wish to end turn or reroll ? : 1 or 0\n")
+
+            actions.append(int(var))
+
+            self.step(actions)
