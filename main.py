@@ -28,8 +28,8 @@ def main():
         environnement = FarkleGui()
         environnement.run_game_GUI()
 
-    # run_random_game(100)
+    run_random_game(1000)
     # run_gui_game()
 
-for i in range(1):
+for i in range(10):
     main()

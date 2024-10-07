@@ -474,6 +474,13 @@ class Farkle:
                 action_int += 2**i
         return action_int
 
+    def int_to_action(self, n):
+        action = [0] * 7
+        for i in range(7):
+            if n & (1 << i):
+                action[i] = 1
+        return action
+
     # def run_game_GUI(self):
     #     self.reset()
     #     while not self.is_game_over:
