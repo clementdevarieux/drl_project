@@ -131,7 +131,6 @@ class Farkle:
         # action ==> 0 si on garde pas le dé
         # ==> 1 si on le garde dans le cadre de l'attribution de points
         # action => [x, x, x, x, x, x, end/not_end]
-        # print(f"action du joueur: {action}")
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
 
@@ -146,32 +145,6 @@ class Farkle:
             if (i + 1, count) in self.scoring_rules:
                 player.potential_score += self.scoring_rules[(i + 1, count)]
 
-        # # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
-        # # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
-        # for i in range(6):
-        #     count = dice_count[i]
-        #
-        #     # 3 DES IDENTIQUES
-        #     if count == 3:
-        #         if i == 0:  # Trois 1
-        #             player.potential_score += 0.1000  # 1000 points pour trois 1
-        #
-        #             # résultats de dés :[2,1,5,1,1,5]
-        #             # saved dice : [0,0,1,0,0,0]
-        #             # dice_count : [3,1,0,0,1,0]
-        #             # action => [0,1,0,1,1,1/0,1/0]
-        #             # reboucle sur tous les self.dice_value
-        #             #
-        #         else:
-        #             player.potential_score += (i + 1) * 100 / 10_000  # Autres triples (2 à 6)
-        #
-        #     # 1 INDIVIDUELS
-        #     if self.dices_values[i] == 1 and action[i] == 1:
-        #         player.potential_score += 0.0100  # 100 points par 1
-        #     # 5 INDIVIDUELS
-        #     elif self.dices_values[i] == 5 and action[i] == 1:
-        #         player.potential_score += 0.0050  # 50 points par 5
-
         self.update_saved_dice(action)
 
     def available_actions(self, player: Player):
@@ -181,7 +154,6 @@ class Farkle:
                 dice_count[int(self.dices_values[i]) - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_results = [3, 2, 3, 5, 6, 5]
         # dice_count = [0, 1, 2, 0, 2, 1]
-        # print(f"dice count: {dice_count}")
 
         pairs = (dice_count == 2).sum()
         thrice = (dice_count == 3).sum()
@@ -219,8 +191,6 @@ class Farkle:
                 dices_values_without_saved_dices.append(self.dices_values[i])
             else:
                 dices_values_without_saved_dices.append(0)
-
-        # print(f"dices_values_without_saved_dices: {dices_values_without_saved_dices}")
 
         for value in dices_values_without_saved_dices:
             if value in available_actions:
@@ -271,9 +241,6 @@ class Farkle:
 
         if self.is_game_over:
             raise ValueError("Game is over, please reset the environment.")
-
-        # if self.player_turn == 0:
-        #     self.turn += 1
 
         if sum(action) == 0.0 or len(action) == 0:
             self.end_turn_score(False, player)
@@ -328,15 +295,6 @@ class Farkle:
         chosen_actions = []
 
         count = 0
-        # for value in aa:
-        #     if value in rand_action:
-        #         chosen_actions.append(1)
-        #         if value == 1 or count > 1:
-        #             rand_action.pop(rand_action.index(value))
-        #         else:
-        #             count += 1
-        #     else:
-        #         chosen_actions.append(0)
         for i, value in enumerate(aa):
             # Skip dice that have already been saved
             if self.saved_dice[i] == 1:
@@ -356,25 +314,13 @@ class Farkle:
 
         return chosen_actions
 
-    def is_game_over(self) -> bool:
-        return self.is_game_over
-
-    def get_score_player_1(self) -> float:
-        return self.player_1.score
-
-    def get_score_player_2(self) -> float:
-        return self.player_2.score
-
-    def get_reward(self):
-        return self.reward
-
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
         if self.player_turn == 0:
             print("C'est le tour du joueur 1")
         else:
             print("C'est le tour du joueur 2")
-        # Représentation des dés basés sur une matrice de 3x3
+
         dices_visual = {
             1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
             2: ("┌─────┐", "│ ●   │", "│     │", "│   ● │", "└─────┘"),
@@ -429,7 +375,6 @@ class Farkle:
             )
         }
 
-        # Assemble les dés ligne par ligne
         lines = [""] * 5
         for i, value in enumerate(self.dices_values):
             if int(self.saved_dice[i]) == 0:
@@ -437,9 +382,8 @@ class Farkle:
             else:
                 face = red_dices_visual[value]
             for i in range(5):
-                lines[i] += face[i] + "  "  # Ajouter un espace entre les dés
+                lines[i] += face[i] + "  "
 
-        # Affiche les dés ligne par ligne
         for line in lines:
             print(line)
 
@@ -472,6 +416,7 @@ class Farkle:
         for i in range(len(action)):
             if action[i] != 0:
                 action_int += 2**i
+<<<<<<< Updated upstream
         return action_int
 
     def int_to_action(self, n):
@@ -542,3 +487,6 @@ class Farkle:
     #         actions.append(int(var))
     #
     #         self.step(actions)
+=======
+        return action_int
+>>>>>>> Stashed changes

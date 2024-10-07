@@ -38,7 +38,6 @@ class FarkleGui:
         # 1 si dé déjà scored
         self.is_game_over = False  # passera en True si self.score >= 1.0
         self.player_turn = 0  # 0 pour nous 1 pour l'adversaire
-        self.turn = 0
         self.reward = 0
         self.scoring_rules = {
             (1, 1): 0.01,
@@ -87,7 +86,6 @@ class FarkleGui:
         self.player_turn = 0
         self.player_1.reset()
         self.player_2.reset()
-        self.turn = 0
         self.reward = 0
 
     def state_description(self) -> np.ndarray:
@@ -131,7 +129,6 @@ class FarkleGui:
         # action ==> 0 si on garde pas le dé
         # ==> 1 si on le garde dans le cadre de l'attribution de points
         # action => [x, x, x, x, x, x, end/not_end]
-        # print(f"action du joueur: {action}")
         # Valeur des dés, et nombre d'apparition des dés scorables
         dice_count = np.zeros(6)  # Il y a 6 valeurs de dé possibles (1 à 6)
 
@@ -146,32 +143,6 @@ class FarkleGui:
             if (i + 1, count) in self.scoring_rules:
                 player.potential_score += self.scoring_rules[(i + 1, count)]
 
-        # # FAIRE ATTENTION PAR RAPPORT A L'ACTION EFFECTUEE
-        # # ON AJOUTE UNIQUEMENT SI LE DE EST SELECTIONNE
-        # for i in range(6):
-        #     count = dice_count[i]
-        #
-        #     # 3 DES IDENTIQUES
-        #     if count == 3:
-        #         if i == 0:  # Trois 1
-        #             player.potential_score += 0.1000  # 1000 points pour trois 1
-        #
-        #             # résultats de dés :[2,1,5,1,1,5]
-        #             # saved dice : [0,0,1,0,0,0]
-        #             # dice_count : [3,1,0,0,1,0]
-        #             # action => [0,1,0,1,1,1/0,1/0]
-        #             # reboucle sur tous les self.dice_value
-        #             #
-        #         else:
-        #             player.potential_score += (i + 1) * 100 / 10_000  # Autres triples (2 à 6)
-        #
-        #     # 1 INDIVIDUELS
-        #     if self.dices_values[i] == 1 and action[i] == 1:
-        #         player.potential_score += 0.0100  # 100 points par 1
-        #     # 5 INDIVIDUELS
-        #     elif self.dices_values[i] == 5 and action[i] == 1:
-        #         player.potential_score += 0.0050  # 50 points par 5
-
         self.update_saved_dice(action)
 
     def available_actions(self, player: Player):
@@ -181,7 +152,6 @@ class FarkleGui:
                 dice_count[int(self.dices_values[i]) - 1] += 1  # Compter les occurrences de chaque valeur de dé
         # dice_results = [3, 2, 3, 5, 6, 5]
         # dice_count = [0, 1, 2, 0, 2, 1]
-        # print(f"dice count: {dice_count}")
 
         pairs = (dice_count == 2).sum()
         thrice = (dice_count == 3).sum()
@@ -220,8 +190,6 @@ class FarkleGui:
             else:
                 dices_values_without_saved_dices.append(0)
 
-        # print(f"dices_values_without_saved_dices: {dices_values_without_saved_dices}")
-
         for value in dices_values_without_saved_dices:
             if value in available_actions:
                 # si la valeur est 1 ou 5, on append 1, sinon on append 2
@@ -258,13 +226,12 @@ class FarkleGui:
                     player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
             self.reset_dices()
             self.launch_dices()
-            # self.print_dices()
+            self.print_dices()
             return self.available_actions(player)
 
         return available_actions_mask
 
     def step(self, action: list):
-        # print(f"Actions reçues: {action}")
         if self.player_turn == 0:
             player = self.player_1
         else:
@@ -272,9 +239,6 @@ class FarkleGui:
 
         if self.is_game_over:
             raise ValueError("Game is over, please reset the environment.")
-
-        # if self.player_turn == 0:
-        #     self.turn += 1
 
         if sum(action) == 0.0 or len(action) == 0:
             self.end_turn_score(False, player)
@@ -329,15 +293,6 @@ class FarkleGui:
         chosen_actions = []
 
         count = 0
-        # for value in aa:
-        #     if value in rand_action:
-        #         chosen_actions.append(1)
-        #         if value == 1 or count > 1:
-        #             rand_action.pop(rand_action.index(value))
-        #         else:
-        #             count += 1
-        #     else:
-        #         chosen_actions.append(0)
         for i, value in enumerate(aa):
             # Skip dice that have already been saved
             if self.saved_dice[i] == 1:
@@ -360,22 +315,13 @@ class FarkleGui:
     def is_game_over(self) -> bool:
         return self.is_game_over
 
-    def get_score_player_1(self) -> float:
-        return self.player_1.score
-
-    def get_score_player_2(self) -> float:
-        return self.player_2.score
-
-    def get_reward(self):
-        return self.reward
-
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
         if self.player_turn == 0:
             print("C'est le tour du joueur 1")
         else:
             print("C'est le tour du joueur 2")
-        # Représentation des dés basés sur une matrice de 3x3
+
         dices_visual = {
             1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
             2: ("┌─────┐", "│ ●   │", "│     │", "│   ● │", "└─────┘"),
@@ -430,7 +376,6 @@ class FarkleGui:
             )
         }
 
-        # Assemble les dés ligne par ligne
         lines = [""] * 5
         for i, value in enumerate(self.dices_values):
             if int(self.saved_dice[i]) == 0:
@@ -438,9 +383,8 @@ class FarkleGui:
             else:
                 face = red_dices_visual[value]
             for i in range(5):
-                lines[i] += face[i] + "  "  # Ajouter un espace entre les dés
+                lines[i] += face[i] + "  "
 
-        # Affiche les dés ligne par ligne
         for line in lines:
             print(line)
 
@@ -456,13 +400,6 @@ class FarkleGui:
         print(f"Score du joueur 1: {self.player_1.score * 10000}")
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
 
-    def play_game_random(self):
-        self.reset()
-        while not self.is_game_over:
-            self.launch_dices()
-            self.print_dices()
-            self.step(self.random_action(self.player_1))
-
     def player_2_random_play(self):
         self.launch_dices()
         self.print_dices()
@@ -477,7 +414,7 @@ class FarkleGui:
         return action_int
 
     def run_game_GUI(self):
-        self.reset()
+        # self.reset()
         while not self.is_game_over:
             while not self.is_game_over and self.player_turn == 1:
                 self.player_2_random_play()
@@ -509,12 +446,14 @@ class FarkleGui:
                 print(actions)
 
                 if 2 in aa:
-                    print(aa)
                     count = 0
+                    picked_2 = False
                     for i in range(NUM_DICE):
                         if aa[i] == 2 and actions[i] == 1:
+                            picked_2 = True
                             count += 1
-                    if count <= 2:
+                    if count <= 2 and picked_2:
+                        print(count)
                         print("Please select at least a combinaison of 3 of a kind for dice values outside of 1 or 5\n")
                         continue
 
