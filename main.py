@@ -16,7 +16,7 @@ def main():
         for _ in tqdm(range(nombre_de_parties)):
             environnement.reset()
             environnement.play_game_random()
-            total_reward += environnement.get_reward()
+            total_reward += environnement.reward
 
         time_delta = time.time() - start_time
         print(f"Mean Reward: {total_reward / nombre_de_parties}")

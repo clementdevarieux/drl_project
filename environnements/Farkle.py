@@ -147,7 +147,12 @@ class Farkle:
 
         self.update_saved_dice(action)
 
-    def available_actions(self, player: Player):
+    def available_actions(self):
+        if self.player_turn == 0:
+            player = self.player_1
+        else:
+            player = self.player_2
+
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés
@@ -164,7 +169,7 @@ class Farkle:
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
-            return self.available_actions(player)
+            return self.available_actions()
 
         if thrice == 2:
             for i in range(NUM_DICE):
@@ -175,7 +180,7 @@ class Farkle:
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
-            return self.available_actions(player)
+            return self.available_actions()
 
         available_actions = []
         available_actions_mask = np.array([])
@@ -207,7 +212,7 @@ class Farkle:
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
-            return self.available_actions(player)
+            return self.available_actions()
 
         if self.saved_dice.sum() == 5 and available_actions_mask.sum() == 1:
             dice_value = [int(x) for x in dices_values_without_saved_dices if x != 0]
@@ -215,7 +220,7 @@ class Farkle:
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
-            return self.available_actions(player)
+            return self.available_actions()
 
         available_actions_without_zeros = [int(x) for x in available_actions_mask if x != 0]
         # [0,1,1] -> [1,1]
@@ -229,7 +234,7 @@ class Farkle:
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
-            return self.available_actions(player)
+            return self.available_actions()
 
         return available_actions_mask
 
@@ -247,7 +252,7 @@ class Farkle:
             if self.player_turn == 1:
                 self.launch_dices()
                 # self.print_dices()
-                random_action = self.random_action(self.player_2)
+                random_action = self.random_action()
                 return self.step(random_action)
             else:
                 return
@@ -269,11 +274,11 @@ class Farkle:
             if self.player_turn == 1:
                 self.launch_dices()
                 # self.print_dices()
-                random_action = self.random_action(self.player_2)
+                random_action = self.random_action()
                 self.step(random_action)
 
-    def random_action(self, player: Player):
-        aa = self.available_actions(player)
+    def random_action(self):
+        aa = self.available_actions()
         # aa = [2, 1, 2, 0, 2, 2]
         filtered_action = [int(x) for x in aa if x != 0]
 
@@ -403,12 +408,12 @@ class Farkle:
         while not self.is_game_over:
             self.launch_dices()
             # self.print_dices()
-            self.step(self.random_action(self.player_1))
+            self.step(self.random_action())
 
     def player_2_random_play(self):
         self.launch_dices()
         # self.print_dices()
-        random_action = self.random_action(self.player_2)
+        random_action = self.random_action()
         self.step(random_action)
 
     def action_to_int(self, action):
