@@ -1,34 +1,43 @@
+# Importer la classe LineWorld depuis le fichier LineWorld.py
 from environnements.LineWorld import LineWorld
 from environnements.GridWorld import GridWorld
-from environnements.TicTacToe import TicTacToeVersusRandom
+from environnements.Farkle import Farkle
+import numpy as np
+import random
+from tqdm import tqdm
+import time
 
+# Importer la fonction policy_iteration depuis PolicyIteration.py
 from algorithmes.PolicyIteration import policy_iteration
 from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 
 def main():
-    environement = TicTacToeVersusRandom()
+    environnement = Farkle()
+    environnement.reset()
+    environnement.play_game_random()
+    # environnement
+    # environnement.run_game_GUI()
 
-    environement.run_game()
+    # Play 1000 games and print mean score
+    total_score = 0.0
+    nombre_de_parties = 1000
 
-    # # Créer une instance de l'environnement LineWorld
-    # # Initialiser les paramètres
-    # gamma = 0.9    # Facteur de discount (récompense future)
-    # epsilon = 0.1  # Probabilité de choisir une action aléatoire (exploration)
-    # alpha = 0.1    # Taux d'apprentissage
-    # nb_iter = 1000 # Nombre d'itérations
-    # max_steps = 100 # Nombre maximum de pas par épisode
-    #
-    # # Créer une instance du GridWorld (ou autre environnement)
-    # environment = GridWorld()
-    #
-    # # Appliquer Q-learning off-policy
-    # policy = Q_learning_off_policy(environment,gamma, epsilon, alpha, nb_iter, max_steps)
-    #
-    # # Afficher la politique optimale obtenue
-    # print("Politique optimale obtenue :")
-    # print(policy)
-    #
-    # # Lancer un jeu pour visualiser la politique obtenue
-    # environment.run_game_hashmap(policy)
+    start_time = time.time()
+    for _ in tqdm(range(nombre_de_parties)):
+        environnement.reset()
+        environnement.play_game_random()
+        total_score += environnement.get_score()
 
-main()
+    time_delta = time.time() - start_time
+    print(f"Mean Score: {total_score / nombre_de_parties}")
+
+    print(f"Total time for {nombre_de_parties} games: {time_delta:.2f} seconds")
+
+    # Calculer le nombre de parties par seconde
+    games_per_second = nombre_de_parties / time_delta
+    print(f"Games per second: {games_per_second:.2f}")
+
+
+# for i in tqdm(range(1)):
+for i in range(10):
+    main()
