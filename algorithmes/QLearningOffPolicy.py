@@ -9,7 +9,7 @@ def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps):
         self.reset()
         steps_count = 0
 
-        while steps_count < max_steps and not self.is_game_over():
+        while steps_count < max_steps and not self.is_game_over:
             s = self.agent_pos
             aa = self.available_actions()
 
@@ -41,7 +41,7 @@ def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps):
             aa_p = self.available_actions()
 
             # Calcul du target pour la mise à jour de Q
-            if self.is_game_over():
+            if self.is_game_over:
                 target = r
             else:
                 best_a_p = None
