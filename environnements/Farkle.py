@@ -1,6 +1,8 @@
 import numpy as np
 import random
 
+from environnements.contracts import DeepDiscreteActionsEnv
+
 NUM_DICE_VALUE_ONE_HOT = 36
 NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
@@ -28,7 +30,7 @@ class Player:
         self.score = 0.0
 
 
-class Farkle:
+class Farkle(DeepDiscreteActionsEnv):
 
     def __init__(self):
         self.player_1 = Player(0)
@@ -237,6 +239,28 @@ class Farkle:
             return self.available_actions()
 
         return available_actions_mask
+
+    def available_actions_ids(self) -> np.ndarray:
+        return np.where(np.logical_or(self.available_actions() == 1, self.available_actions() == 2))[0]
+    def is_valid_combination(self, action_int):
+        if action_int == 64:
+            return 0.0
+        binary_action = [int(bit) for bit in f"{action_int:07b}"][::-1]
+
+        aa = self.available_actions()
+
+        count_type_2 = 0
+        for i in range(6):
+            if binary_action[i] == 1 and aa[i] == 0:
+                return 0.0
+            if aa[i] == 2 and binary_action[i] == 1:
+                count_type_2 += 1
+        if 0 < count_type_2 < 3:
+            return 0.0
+        return 1.0
+
+    def action_mask(self) -> np.ndarray:
+        return np.array([self.is_valid_combination(action_int) for action_int in range(1, 128)])
 
     def step(self, action: list):
         if self.player_turn == 0:

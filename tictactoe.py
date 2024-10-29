@@ -1,12 +1,12 @@
 import numpy as np
 
-# from contracts import DeepDiscreteActionsEnv
+from environnements.contracts import DeepDiscreteActionsEnv
 
 NUM_STATE_FEATURES = 27
 NUM_ACTIONS = 9
 
 
-class TicTacToeVersusRandom():
+class TicTacToeVersusRandom(DeepDiscreteActionsEnv):
     def __init__(self):
         self._board = np.zeros((NUM_ACTIONS,))
         self._player = 0
@@ -97,8 +97,7 @@ class TicTacToeVersusRandom():
         pretty_str += f'Game Over: {self._is_game_over}\n'
         return pretty_str
 
-    def run_game(self):
-        while not self.is_game_over():
-            var = input("Please enter action: ")
-            self.step(int(var))
-            print(self.__str__())
+if __name__ == "__main__":
+    env = TicTacToeVersusRandom()
+    print(env.available_actions_ids())
+    print(env.action_mask())

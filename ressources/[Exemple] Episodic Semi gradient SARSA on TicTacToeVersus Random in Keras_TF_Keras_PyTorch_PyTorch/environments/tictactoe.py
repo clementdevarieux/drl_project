@@ -1,6 +1,6 @@
 import numpy as np
 
-from contracts import DeepDiscreteActionsEnv
+from ..contracts import DeepDiscreteActionsEnv
 
 NUM_STATE_FEATURES = 27
 NUM_ACTIONS = 9
@@ -97,3 +97,5 @@ class TicTacToeVersusRandom(DeepDiscreteActionsEnv):
         pretty_str += f'Game Over: {self._is_game_over}\n'
         return pretty_str
 
+if __name__ == "__main__":
+    print('ok')
