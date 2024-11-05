@@ -170,10 +170,8 @@ class Farkle(DeepDiscreteActionsEnv):
         self.update_saved_dice(action)
 
     def available_actions(self):
-        if self.player_turn == 0:
-            player = self.player_1
-        else:
-            player = self.player_2
+        player = self.player_1 if self.player_turn == 0 else self.player_2
+
 
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
@@ -182,35 +180,18 @@ class Farkle(DeepDiscreteActionsEnv):
         # dice_results = [3, 2, 3, 5, 6, 5]
         # dice_count = [0, 1, 2, 0, 2, 1]
 
-        pairs = (dice_count == 2).sum()
-        thrice = (dice_count == 3).sum()
-        quadruples = (dice_count == 4).sum()
-
-        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
-            player.potential_score += 0.1500
-            self.reset_dices()
-            self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
-
-        if thrice == 2:
-            for i in range(NUM_DICE):
-                if i == 0 and dice_count[i] == 3:
-                    player.potential_score += 0.1000
-                if i > 0 and dice_count[i] == 3:
-                    player.potential_score += (i + 1) / 100
-            self.reset_dices()
-            self.launch_dices()
-            # self.print_dices()
-            return self.available_actions()
 
         available_actions = []
         available_actions_mask = np.array([])
 
-        for i in range(NUM_DICE):
-            value_to_check = dice_count[i]
-            if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
+        for i, value in enumerate(dice_count):
+            if value > 2 or ((i == 0 or i == 4) and value >= 1):
                 available_actions.append(i + 1)
+
+        # for i, value in range(NUM_DICE):
+        #     value_to_check = dice_count[i]
+        #     if value_to_check > 2 or ((i == 0 or i == 4) and value_to_check >= 1):
+        #         available_actions.append(i + 1)
 
         dices_values_without_saved_dices = []
         for i in range(NUM_DICE):
@@ -231,6 +212,28 @@ class Farkle(DeepDiscreteActionsEnv):
 
         if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
             player.potential_score += 0.05
+            self.reset_dices()
+            self.launch_dices()
+            # self.print_dices()
+            return self.available_actions()
+
+        pairs = (dice_count == 2).sum()
+        thrice = (dice_count == 3).sum()
+        quadruples = (dice_count == 4).sum()
+
+        if np.array_equal(dice_count, [1, 1, 1, 1, 1, 1]) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
+            player.potential_score += 0.1500
+            self.reset_dices()
+            self.launch_dices()
+            # self.print_dices()
+            return self.available_actions()
+
+        if thrice == 2:
+            for i in range(NUM_DICE):
+                if i == 0 and dice_count[i] == 3:
+                    player.potential_score += 0.1000
+                if i > 0 and dice_count[i] == 3:
+                    player.potential_score += (i + 1) / 100
             self.reset_dices()
             self.launch_dices()
             # self.print_dices()
@@ -259,6 +262,66 @@ class Farkle(DeepDiscreteActionsEnv):
             return self.available_actions()
 
         return available_actions_mask
+    #
+    # def available_actions(self):
+    #     player = self.player_1 if self.player_turn == 0 else self.player_2
+    #
+    #     # Calcul des occurrences des valeurs des dés non sauvegardés
+    #     dice_count = np.zeros(6, dtype=int)
+    #     for i in range(NUM_DICE):
+    #         if self.saved_dice[i] == 0:
+    #             dice_count[self.dices_values[i] - 1] += 1
+    #
+    #     # Vérification des combinaisons spéciales
+    #     pairs, thrice, quadruples = (dice_count == 2).sum(), (dice_count == 3).sum(), (dice_count == 4).sum()
+    #
+    #     # Cas spéciaux : toutes les valeurs ou 3 paires ou 4+2
+    #     if np.array_equal(dice_count, np.ones(6)) or (pairs == 3 or (quadruples == 1 and pairs == 1)):
+    #         player.potential_score += 0.15
+    #         self.reset_dices()
+    #         self.launch_dices()
+    #         return self.available_actions()
+    #
+    #     # Cas de deux triplets
+    #     if thrice == 2:
+    #         for i, count in enumerate(dice_count):
+    #             if count == 3:
+    #                 player.potential_score += (i + 1) / 100
+    #         self.reset_dices()
+    #         self.launch_dices()
+    #         return self.available_actions()
+    #
+    #     # Calcul du masque d'actions disponibles
+    #     available_actions_mask = np.zeros(NUM_DICE, dtype=int)
+    #     for i, count in enumerate(dice_count):
+    #         if count > 2 or ((i == 0 or i == 4) and count >= 1):
+    #             available_actions_mask[self.dices_values == (i + 1)] = 1
+    #
+    #     # Gestion des cas où aucune action n'est disponible
+    #     if available_actions_mask.sum() == 0 and np.array_equal(self.saved_dice, np.zeros(NUM_DICE, dtype=int)):
+    #         player.potential_score += 0.05
+    #         self.reset_dices()
+    #         self.launch_dices()
+    #         return self.available_actions()
+    #
+    #     # Si tous les dés sont déjà sauvegardés sauf un, avec une action possible
+    #     if self.saved_dice.sum() == 5 and available_actions_mask.sum() == 1:
+    #         dice_value = int(self.dices_values[self.saved_dice == 0][0])
+    #         player.potential_score += self.scoring_rules[(dice_value, 1)]
+    #         self.reset_dices()
+    #         self.launch_dices()
+    #         return self.available_actions()
+    #
+    #     # Vérification d'une combinaison gagnante
+    #     if len(np.nonzero(available_actions_mask)[0]) + len(np.nonzero(self.saved_dice)[0]) == 6:
+    #         for i, count in enumerate(dice_count):
+    #             if count > 0:
+    #                 player.potential_score += self.scoring_rules.get((i + 1, count), 0)
+    #         self.reset_dices()
+    #         self.launch_dices()
+    #         return self.available_actions()
+    #
+    #     return available_actions_mask
 
     def available_actions_ids(self) -> np.ndarray:
         return np.where(np.logical_or(self.available_actions() == 1, self.available_actions() == 2))[0]
@@ -289,6 +352,7 @@ class Farkle(DeepDiscreteActionsEnv):
             player = self.player_2
 
         if self.is_game_over:
+            print(self.player_turn)
             raise ValueError("Game is over, please reset the environment.")
 
         if sum(action) == 0.0 or len(action) == 0:
@@ -303,6 +367,8 @@ class Farkle(DeepDiscreteActionsEnv):
 
         for i in range(NUM_DICE):
             if action[i] == 1 and self.saved_dice[i] == 1:
+                print(f'action = \n {action}')
+                print(f'mask = \n {self.action_mask()}')
                 print(self.state_description())
                 print(self.available_actions())
                 print(self.action_to_int(action))
@@ -323,6 +389,7 @@ class Farkle(DeepDiscreteActionsEnv):
                 # self.print_dices()
                 random_action = self.random_action()
                 self.step(random_action)
+
 
     def random_action(self):
         aa = self.available_actions()
@@ -453,6 +520,7 @@ class Farkle(DeepDiscreteActionsEnv):
     def play_game_random(self):
         self.reset()
         while not self.is_game_over:
+
             self.launch_dices()
             # self.print_dices()
             self.step(self.random_action())

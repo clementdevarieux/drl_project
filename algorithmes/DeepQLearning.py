@@ -55,9 +55,19 @@ def deepQLearning(
 
         env.reset()
         while not env.is_game_over:
+            env.launch_dices()
+            aa = env.available_actions()
+            if sum(aa) == 0.0:
+                env.end_turn_score(False, env.player_1)
+                if env.player_turn == 1:
+                    while not env.is_game_over and env.player_turn == 1:
+                        env.player_2_random_play()
+
+                    env.reset_dices()
+                    env.player_turn = 0
+                    continue
             s = env.state_description()
             s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
-
             if np.random.rand() < decayed_epsilon:
                 a = env.random_action()
                 int_a = env.action_to_int(a)
@@ -66,7 +76,11 @@ def deepQLearning(
                 mask = env.action_mask()
                 mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
                 int_a = epsilon_greedy_action(q_s, mask_tensor)
-                a = env.int_to_action(int_a+1)
+
+                if mask.sum() == 0.0:
+                    a = env.int_to_action(int_a)
+                else:
+                    a = env.int_to_action(int_a + 1)
 
             prev_score = env.player_1.score
             env.step(a)
@@ -102,6 +116,9 @@ def deepQLearning(
                     yj = transition[2] + gamma * max_q_s_prime
 
                 gradient_step(model, transition[0], transition[1], yj, optimizer)
+
+
+
 
     return model
 
