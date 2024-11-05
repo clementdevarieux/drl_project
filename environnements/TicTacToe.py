@@ -28,6 +28,19 @@ class TicTacToeVersusRandom():
                 state_description[i] = 1.0
         return state_description
 
+    def restore_from_state(self, state: np.ndarray):
+        self.reset()
+
+        for i in range(NUM_STATE_FEATURES):
+            cell = i // 3
+            feature = i % 3
+
+            if state[i] == 1.0:
+                if feature == 1:
+                    self._board[cell] = 1  # Joueur X
+                elif feature == 2:
+                    self._board[cell] = 2  # Joueur O
+
     def available_actions_ids(self) -> np.ndarray:
         return np.where(self._board == 0)[0]
 
