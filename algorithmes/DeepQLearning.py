@@ -29,7 +29,6 @@ def epsilon_greedy_action(
 def deepQLearning(
         model: keras.Model,
         env: DeepDiscreteActionsEnv,
-        second_env: DeepDiscreteActionsEnv,
         num_episodes: int,
         gamma: float,
         alpha: float,
@@ -77,7 +76,10 @@ def deepQLearning(
             s_prime = env.state_description()
             s_prime_tensor = tf.convert_to_tensor(s_prime, dtype=tf.float32)
 
-            replay_memory.append((s_tensor, int_a, r, s_prime_tensor))
+            mask_prime = env.action_mask()
+            mask_prime_tensor = tf.convert_to_tensor(mask_prime, dtype=tf.float32)
+
+            replay_memory.append((s_tensor, int_a, r, s_prime_tensor, mask_prime_tensor))
 
             if len(replay_memory) > max_replay_size:
                 replay_memory = replay_memory[-max_replay_size:]
@@ -94,10 +96,8 @@ def deepQLearning(
                     yj = 1.0
                 else:
                     q_s_prime = model_predict(model, transition[3])
-                    second_env.restore_from_state(transition[3].numpy())
-                    mask = second_env.action_mask()
-                    mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
-                    best_a_index = env.int_to_action(epsilon_greedy_action(q_s_prime, mask_tensor))
+                    mask_prime_tensor = transition[4]
+                    best_a_index = env.int_to_action(epsilon_greedy_action(q_s_prime, mask_prime_tensor))
                     max_q_s_prime = q_s_prime.numpy()[best_a_index]
                     yj = transition[2] + gamma * max_q_s_prime
 

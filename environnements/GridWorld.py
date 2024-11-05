@@ -130,7 +130,7 @@ class GridWorld:
         ok_states = [8, 9, 10, 11, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 36, 37, 38, 39]
         self.agent_pos = random.choice(ok_states)
 
-    def state_desc(self):
+    def state_description(self):
         one_hot = [0.0] * self.num_states
         one_hot[self.agent_pos] = 1.0
         return one_hot
@@ -202,6 +202,9 @@ class GridWorld:
             self.display()
             print("\n")
             step += 1
+
+    def action_mask(self) -> np.ndarray:
+        return [] if self.is_game_over() else self.A
 
     def run_game_hashmap(self, Pi):
         print("Initial State:\n")
