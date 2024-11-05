@@ -146,7 +146,7 @@ class FarkleGui:
         self.update_saved_dice(action)
 
     def available_actions(self, player: Player):
-        print(f'``````````````STATE DESC``````````````\n{self.state_description()}')
+        # print(f'``````````````STATE DESC``````````````\n{self.state_description()}')
         dice_count = np.zeros(NUM_DICE)
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:  # Ignorer les dés non sauvegardés

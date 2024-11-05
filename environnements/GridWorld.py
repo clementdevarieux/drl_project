@@ -38,6 +38,9 @@ class GridWorld:
 
         return a_biggest_prob
 
+    def random_action(self):
+        return random.choice(self.A)
+
     def update_p(self):
         for s in range(self.num_states):
             for a in range(self.num_actions):
@@ -204,7 +207,7 @@ class GridWorld:
             step += 1
 
     def action_mask(self) -> np.ndarray:
-        return [] if self.is_game_over() else self.A
+        return np.array([]) if self.is_game_over() else np.array([1.0,1.0,1.0,1.0])
 
     def run_game_hashmap(self, Pi):
         print("Initial State:\n")

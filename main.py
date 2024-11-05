@@ -1,6 +1,6 @@
 from environnements.Farkle import Farkle
 from environnements.TicTacToe import TicTacToeVersusRandom
-from environnements.Farkle_Gui import FarkleGui
+# from environnements.Farkle_Gui import FarkleGui
 from environnements.GridWorld import GridWorld
 import numpy as np
 import random
@@ -15,50 +15,75 @@ import keras
 
 
 def main():
-    env = GridWorld()
+    env = Farkle()
 
-
-
+#
+#
 #     env.restore_from_state([0., 0., 0., 1., 0., 0., 1., 0., 0., 0., 0., 0.,
 # 0., 1., 0., 0., 0., 0., 0., 0., 0., 1., 0., 0.,
 # 0., 0., 0., 0., 0., 1., 0., 0., 0., 1., 0., 0.,
 # 0., 1., 0., 1., 1., 0., 0., 1., 1., 0., 0., 1.,
 # 0., 0.675, 0.065])
-    # print(env.dices_values)
-    # print(env.saved_dice)
-    # print(env.available_actions())
-    # print(env.player_turn)
+#     print(env.dices_values)
+#     print(env.saved_dice)
+#     print(env.available_actions())
+#     print(env.player_turn)
 
-
+    #
     # output_nbr = 128 - 1 # 127 représente toutes les combinaisons possibles, 2 puissance 7 - 1 car obligé d'avoir au min 1 dé?
-    output_nbr = 9
-    # # à confirmer si c'est correcte
+    # # output_nbr = 9
+    # # # à confirmer si c'est correcte
+    # #
+    # model = keras.Sequential([
+    #     keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    # ])
+    # #
+    # model = DeepQLearning.deepQLearning(model, env, 100, 0.999, 0.001, 1.0, 0.00001, 100, 16)
     #
-    model = keras.Sequential([
-        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    ])
-    #
-    model = DeepQLearning.deepQLearning(model, env, 1000, 0.999, 0.001, 1.0, 0.00001, 100, 16)
+    # model.save('model/test_model_100')
 
+    model = tf.keras.models.load_model('model/test_model', custom_objects=None, compile=True, safe_mode=True)
 
     # Play 1000 games and print mean score
     total_score = 0.0
-    for _ in range(1000):
+    for _ in tqdm(range(100)):
         env.reset()
-        while not env.is_game_over():
+        while not env.is_game_over:
+            env.launch_dices()
+            aa = env.available_actions()
+            if sum(aa) == 0.0:
+                env.end_turn_score(False, env.player_1)
+                if env.player_turn == 1:
+                    while not env.is_game_over and env.player_turn == 1:
+                        env.player_2_random_play()
+
+                    env.reset_dices()
+                    env.player_turn = 0
+                    continue
+
             s = env.state_description()
             s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
+            # aa = env.available_actions()
+            # env.print_dices()
             mask = env.action_mask()
             mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
             q_s = DeepQLearning.model_predict(model, s_tensor)
-            a = DeepQLearning.epsilon_greedy_action(q_s, mask_tensor)
+            greedy_a = DeepQLearning.epsilon_greedy_action(q_s, mask_tensor)
+            # print(greedy_a)
+            # print(env.action_to_int(greedy_a))
+            if mask.sum() == 0.0:
+                a = env.int_to_action(greedy_a)
+            else:
+                a = env.int_to_action(greedy_a + 1)
+            # a = env.int_to_action(greedy_a + 1)
             env.step(a)
-        total_score += env.score()
-    print(f"Mean Score: {total_score / 1000}")
-    #
+        total_score += env.reward
+        # print(total_score)
+    print(f"Mean Score: {total_score / 100}")
+    # #
     # while True:
     #     env.reset()
     #     while not env.is_game_over():
@@ -92,7 +117,7 @@ def main():
     #     env = FarkleGui()
     #     env.run_game_GUI()
 
-    # run_random_game(1)
+    # run_random_game(10000)
     # run_gui_game()
 
 for i in range(1):
