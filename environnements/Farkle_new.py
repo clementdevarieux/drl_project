@@ -267,9 +267,6 @@ class Farkle_new:
 
         self.update_saved_dice(action_key)
 
-    # reste à faire available_actions, action_mask et step
-    # et is_valid_combinaison, et random_action
-
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
         if self.player_turn == 0:
@@ -354,3 +351,137 @@ class Farkle_new:
 
         print(f"Score du joueur 1: {self.player_1.score * 10000}")
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
+
+
+    # reste à faire available_actions, action_mask et step
+    # et is_valid_combinaison, et random_action
+    def available_dices_value_count(self):
+        dice_count = np.zeros(6)
+        for i in range(NUM_DICE):
+            if self.saved_dice[i] == 0:
+                dice_count[self.dices_values[i] - 1] += 1
+        return dice_count
+
+    def check_for_suite(self, player: Player_new, dice_count):
+        if np.array_equal(dice_count, np.ones(6)):
+            player.potential_score += 0.15
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
+
+    def check_nothing(self, player: Player_new, dice_count):
+        if np.array_equal(dice_count, np.zeros(6)):
+            player.potential_score += 0.05
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
+
+    def check_three_pairs(self, player: Player_new, dice_count):
+        if (dice_count == 2).sum() == 3:
+            player.potential_score += 0.1
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
+
+    # def check_trois_identiques(self, player: Player_new, dice_count):
+    #     three_of_a_kind_count = (dice_count == 3).sum()
+    #     value_of_triple = 0
+    #     if three_of_a_kind_count >= 1:
+    #         for i in range(NUM_DICE):
+    #             if dice_count[i] == 3:
+    #                 if i == 0:
+    #                     player.potential_score += 0.1
+    #                     value_of_triple = i + 1
+    #                 else:
+    #                     player.potential_score += (i + 1) / 100
+    #                     value_of_triple = i + 1
+    #         if three_of_a_kind_count == 1:
+    #             for i in range(NUM_DICE):
+    #                 if self.dices_values[i] == value_of_triple and self.saved_dice[i] == 0:
+    #                     self.saved_dice[i] = 1
+    #         else:
+    #             self.reset_saved_dices()
+    #             self.launch_dices()
+    #             self.available_actions(player)
+
+
+    def check_trois_identiques_twice(self, player: Player_new, dice_count):
+        three_of_a_kind_count = (dice_count == 3).sum()
+        if three_of_a_kind_count > 1:
+            for i in range(NUM_DICE):
+                if dice_count[i] == 3:
+                    if i == 0:
+                        player.potential_score += 0.1
+                    else:
+                        player.potential_score += (i + 1) / 100
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
+
+    def check_quatre_identiques(self, player: Player_new, dice_count):
+        value_of_quad = 0
+        if (dice_count == 4).sum() == 1:
+            for i in range(NUM_DICE):
+                if i == 0 and dice_count[i] == 4:
+                    player.potential_score += 0.2
+                    value_of_quad = i + 1
+                if i > 0 and dice_count[i] == 4:
+                    player.potential_score += (i + 1) / 50
+                    value_of_quad = i + 1
+            for i in range(NUM_DICE):
+                if self.dices_values[i] == value_of_quad and self.saved_dice[i] == 0:
+                    self.saved_dice[i] = 1
+
+    def check_cinq_identiques(self, player: Player_new, dice_count):
+        value_of_five = 0
+        if (dice_count == 5).sum() == 1:
+            for i in range(NUM_DICE):
+                if i == 0 and dice_count[i] == 5:
+                    player.potential_score += 0.4
+                    value_of_five = i + 1
+                if i > 0 and dice_count[i] == 5:
+                    player.potential_score += (i + 1) / 25
+                    value_of_five = i + 1
+            for i in range(NUM_DICE):
+                if self.dices_values[i] == value_of_five and self.saved_dice[i] == 0:
+                    self.saved_dice[i] = 1
+
+    def check_six_identiques(self, player: Player_new, dice_count):
+        if (dice_count == 6).sum() == 1:
+            for i in range(NUM_DICE):
+                if i == 0 and dice_count[i] == 6:
+                    player.potential_score += 0.8
+                if i > 0 and dice_count[i] == 6:
+                    player.potential_score += (i + 1) / 12.5
+        self.reset_saved_dices()
+        self.launch_dices()
+        self.available_actions(player)
+
+
+    def available_actions(self, player: Player_new):
+
+        dice_count = self.available_dices_value_count()
+
+        # les fonctions suivantes soit relancent tous les dés
+        self.check_nothing(player, dice_count)
+        self.check_for_suite(player, dice_count)
+        self.check_six_identiques(player, dice_count)
+        self.check_three_pairs(player, dice_count)
+        self.check_trois_identiques_twice(player, dice_count)
+
+        # PROBLEME, il faut que ça mette à jour le vecteur d'action du tour
+        # self.check_trois_identiques(player, dice_count)
+        # self.check_quatre_identiques(player, dice_count)
+        # self.check_cinq_identiques(player, dice_count)
+
+        # maintenant il reste que quand il y a moins de 3 ou 1 ou moins de 3 5
+        # il faudra ensuite gérer de relancer si nécessaire
+
+
+
+
+
+
+
+
+
