@@ -85,6 +85,7 @@ class Farkle_new:
             (6, 6): 0.48
         }
         self.actions_dict = {
+            0: [0, 0, 0, 0, 0, 0, 0],
             1: [1, 0, 0, 0, 0, 0, 0],
             2: [0, 1, 0, 0, 0, 0, 0],
             3: [1, 1, 0, 0, 0, 0, 0],
@@ -210,8 +211,8 @@ class Farkle_new:
             123: [1, 1, 0, 1, 1, 1, 1],
             124: [0, 0, 1, 1, 1, 1, 1],
             125: [1, 0, 1, 1, 1, 1, 1],
-            126: [0, 1, 1, 1, 1, 1, 1],
-            127: [1, 1, 1, 1, 1, 1, 1]
+            126: [0, 1, 1, 1, 1, 1, 1]
+            # 127: [1, 1, 1, 1, 1, 1, 1]
         }
 
 
@@ -253,7 +254,14 @@ class Farkle_new:
     def end_turn_score(self, keep: bool, player: Player_new):
         if keep:
             player.add_score()
-            self.check_is_game_over(player)
+            if player.score >= 1.0:
+                self.is_game_over = True
+            if self.is_game_over:
+                if self.player_turn == 0:
+                    self.reward += 1
+                else:
+                    self.reward -= 1
+                return
         player.potential_score = 0.0
         self.reset_saved_dices()
         self.change_player_turn()
@@ -469,17 +477,6 @@ class Farkle_new:
         else:
             return self.player_2
 
-    def check_is_game_over(self, player: Player_new):
-        if player.score >= 1.0:
-            self.is_game_over = True
-        if self.is_game_over:
-            if self.player_turn == 0:
-                self.reward += 1
-            else:
-                self.reward -= 1
-            return
-
-
     def find_possible_keys(self, available_actions_mask):
         new_mask = np.append(available_actions_mask, 1)
 
@@ -542,6 +539,16 @@ class Farkle_new:
         #     else:
         #         return
         #
+
+        if action_key in [0, 64]:
+            self.end_turn_score(False, player)
+            if self.player_turn == 1:
+                player = self.which_player()
+                self.launch_dices()
+                random_action_key = self.random_action(self.available_actions(player))
+                self.step(random_action_key)
+            else:
+                return
         for i in range(NUM_DICE):
             if self.actions_dict[action_key][i] == 1 and self.saved_dice[i] == 1:
                 raise ValueError(f"Dice {i + 1} already saved, make another action")
@@ -550,8 +557,8 @@ class Farkle_new:
 
         if self.actions_dict[action_key][6] == 1:
             self.end_turn_score(True, player)
-            self.check_is_game_over(player)
-
+            if self.is_game_over:
+                return
             if self.player_turn == 1:
                 self.launch_dices()
                 random_action_key = self.random_action(self.available_actions(player))
@@ -561,15 +568,15 @@ class Farkle_new:
         self.reset()
         while not self.is_game_over:
             self.launch_dices()
-            print(self.dices_values)
+            # print(self.dices_values)
             player = self.which_player()
-            print(player)
+            # print(player)
             aa = self.available_actions(player)
             random_action = self.random_action(aa)
-            print('available_actions:', aa)
-            print('random_action:', random_action)
+            # print('available_actions:', aa)
+            # print('random_action:', random_action)
             self.step(random_action)
-            print('potential_score:', player.potential_score)
+            # print('potential_score:', player.potential_score)
             # self.step(self.random_action(aa))
-            print("player_1 score: ", self.player_1.score)
-            print("player_2 score: ", self.player_2.score)
+            # print("player_1 score: ", self.player_1.score)
+            # print("player_2 score: ", self.player_2.score)
