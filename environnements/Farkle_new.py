@@ -1,5 +1,6 @@
 import numpy as np
 import random
+from itertools import product
 
 NUM_DICE_VALUE_ONE_HOT = 36
 NUM_DICE_SAVED_ONE_HOT = 12
@@ -8,9 +9,10 @@ NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 3
 
 class Player_new:
 
-    def __init__(self):
+    def __init__(self, player_id):
         self.score = 0.0
         self.potential_score = 0.0
+        self.player = player_id
 
     def reset(self):
         self.score = 0.0
@@ -23,15 +25,32 @@ class Player_new:
         self.score += self.potential_score
 
 
+def calculate_available_actions_mask(dice_count, dices_values_without_saved_dices):
+    available_actions_vec = []
+    available_actions_mask = np.zeros(NUM_DICE, dtype=int)
+    # dice_count =  [0, 1, 3, 0, 1, 1]
+    for i, value in enumerate(dice_count):
+        if value > 2 or ((i == 0 or i == 4) and value >= 1):
+            available_actions_vec.append(i + 1)
+            # available_actions_vec = [3, 5]
+
+    for i, value in enumerate(dices_values_without_saved_dices):
+        if value in available_actions_vec:
+            if value == 1 or value == 5:
+                available_actions_mask[i] = 1
+            else:
+                available_actions_mask[i] = 2
+
+    return available_actions_mask
+
+
 class Farkle_new:
 
     def __init__(self):
         self.dices_values = np.zeros(NUM_DICE, dtype=int)
         self.saved_dice = np.zeros(NUM_DICE, dtype=int)
-        self.player_1_potential_score = 0.0
-        self.player_1_score = 0.0
-        self.player_2_potential_score = 0.0
-        self.player_2_score = 0.0
+        self.player_1 = Player_new(0)
+        self.player_2 = Player_new(1)
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
         self.reward = 0.0
@@ -129,7 +148,7 @@ class Farkle_new:
             61: [1, 0, 1, 1, 1, 1, 0],
             62: [0, 1, 1, 1, 1, 1, 0],
             63: [1, 1, 1, 1, 1, 1, 0],
-            # 64: [0, 0, 0, 0, 0, 0, 1],
+            64: [0, 0, 0, 0, 0, 0, 1],
             65: [1, 0, 0, 0, 0, 0, 1],
             66: [0, 1, 0, 0, 0, 0, 1],
             67: [1, 1, 0, 0, 0, 0, 1],
@@ -191,18 +210,16 @@ class Farkle_new:
             123: [1, 1, 0, 1, 1, 1, 1],
             124: [0, 0, 1, 1, 1, 1, 1],
             125: [1, 0, 1, 1, 1, 1, 1],
-            126: [0, 1, 1, 1, 1, 1, 1]
-            # 127: [1, 1, 1, 1, 1, 1, 1]
+            126: [0, 1, 1, 1, 1, 1, 1],
+            127: [1, 1, 1, 1, 1, 1, 1]
         }
 
 
     def reset(self):
         self.dices_values = np.zeros(NUM_DICE, dtype=int)
         self.saved_dice = np.zeros(NUM_DICE, dtype=int)
-        self.player_1_potential_score = 0.0
-        self.player_1_score = 0.0
-        self.player_2_potential_score = 0.0
-        self.player_2_score = 0.0
+        self.player_1.reset()
+        self.player_2.reset()
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
         self.reward = 0.0
@@ -222,9 +239,9 @@ class Farkle_new:
             state[i * 6 + self.dices_values[i] - 1] = 1.0
         for i in range(NUM_DICE):
             state[NUM_DICE_VALUE_ONE_HOT + 2 * i + self.saved_dice[i]] = 1.0
-        state[-3] = self.player_1_potential_score
-        state[-2] = self.player_1_score
-        state[-1] = self.player_2_score
+        state[-3] = self.player_1.potential_score
+        state[-2] = self.player_1.score
+        state[-1] = self.player_2.score
         return state
 
     def change_player_turn(self):
@@ -234,14 +251,11 @@ class Farkle_new:
             self.player_turn = 0
 
     def end_turn_score(self, keep: bool, player: Player_new):
-        # si le joueur choisit volontairement de scorer:
         if keep:
             player.add_score()
-            if player.score >= 1.0:
-                self.is_game_over = True
-                self.reward = 1.0 if self.player_turn == 0 else -1.0
-                return
+            self.check_is_game_over(player)
         player.potential_score = 0.0
+        self.reset_saved_dices()
         self.change_player_turn()
 
     def update_saved_dice(self, action_key):
@@ -256,9 +270,12 @@ class Farkle_new:
     def update_potential_score(self, action_key, player: Player_new):
         dice_count = np.zeros(6)
 
+        # action ==> 0 si on garde pas le dé
+        # ==> 1 si on le garde dans le cadre de l'attribution de points
+        # action => [x, x, x, x, x, x, end/not_end]
+        # Valeur des dés, et nombre d'apparition des dés scorables
         for i in range(NUM_DICE):
-            if self.saved_dice[i] == 0 and self.actions_dict[action_key][
-                i] == 1:  # Ignorer les dés non sauvegardés et prendre en compte l'action
+            if self.actions_dict[action_key][i] == 1:
                 dice_count[self.dices_values[i] - 1] += 1  # Compter les occurrences de chaque valeur de dé
 
         for i in range(NUM_DICE):
@@ -266,6 +283,7 @@ class Farkle_new:
                 player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
 
         self.update_saved_dice(action_key)
+
 
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
@@ -353,14 +371,14 @@ class Farkle_new:
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
 
 
-    # reste à faire available_actions, action_mask et step
-    # et is_valid_combinaison, et random_action
     def available_dices_value_count(self):
         dice_count = np.zeros(6)
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:
                 dice_count[self.dices_values[i] - 1] += 1
         return dice_count
+        # dice_results = [3, 2, 3, 5, 6, 5]
+        # dice_count = [0, 1, 2, 0, 2, 1]
 
     def check_for_suite(self, player: Player_new, dice_count):
         if np.array_equal(dice_count, np.ones(6)):
@@ -383,105 +401,175 @@ class Farkle_new:
             self.launch_dices()
             self.available_actions(player)
 
-    # def check_trois_identiques(self, player: Player_new, dice_count):
-    #     three_of_a_kind_count = (dice_count == 3).sum()
-    #     value_of_triple = 0
-    #     if three_of_a_kind_count >= 1:
-    #         for i in range(NUM_DICE):
-    #             if dice_count[i] == 3:
-    #                 if i == 0:
-    #                     player.potential_score += 0.1
-    #                     value_of_triple = i + 1
-    #                 else:
-    #                     player.potential_score += (i + 1) / 100
-    #                     value_of_triple = i + 1
-    #         if three_of_a_kind_count == 1:
-    #             for i in range(NUM_DICE):
-    #                 if self.dices_values[i] == value_of_triple and self.saved_dice[i] == 0:
-    #                     self.saved_dice[i] = 1
-    #         else:
-    #             self.reset_saved_dices()
-    #             self.launch_dices()
-    #             self.available_actions(player)
-
-
     def check_trois_identiques_twice(self, player: Player_new, dice_count):
+        # [3, 3, 0, 0, 0, 0]
         three_of_a_kind_count = (dice_count == 3).sum()
-        if three_of_a_kind_count > 1:
-            for i in range(NUM_DICE):
-                if dice_count[i] == 3:
-                    if i == 0:
-                        player.potential_score += 0.1
-                    else:
-                        player.potential_score += (i + 1) / 100
+        if three_of_a_kind_count == 2:
+            mult = dice_count / 3 * np.array([0.1, 0.02, 0.03, 0.04, 0.05, 0.06])
+            # [1, 1, 0, 0, 0, 0] * [0.1, 0.02, 0.03, 0.04, 0.05, 0.06] = [0.1, 0.02, 0, 0, 0, 0]
+            player.potential_score += mult.sum()
             self.reset_saved_dices()
             self.launch_dices()
             self.available_actions(player)
 
-    def check_quatre_identiques(self, player: Player_new, dice_count):
-        value_of_quad = 0
-        if (dice_count == 4).sum() == 1:
-            for i in range(NUM_DICE):
-                if i == 0 and dice_count[i] == 4:
-                    player.potential_score += 0.2
-                    value_of_quad = i + 1
-                if i > 0 and dice_count[i] == 4:
-                    player.potential_score += (i + 1) / 50
-                    value_of_quad = i + 1
-            for i in range(NUM_DICE):
-                if self.dices_values[i] == value_of_quad and self.saved_dice[i] == 0:
-                    self.saved_dice[i] = 1
-
-    def check_cinq_identiques(self, player: Player_new, dice_count):
-        value_of_five = 0
-        if (dice_count == 5).sum() == 1:
-            for i in range(NUM_DICE):
-                if i == 0 and dice_count[i] == 5:
-                    player.potential_score += 0.4
-                    value_of_five = i + 1
-                if i > 0 and dice_count[i] == 5:
-                    player.potential_score += (i + 1) / 25
-                    value_of_five = i + 1
-            for i in range(NUM_DICE):
-                if self.dices_values[i] == value_of_five and self.saved_dice[i] == 0:
-                    self.saved_dice[i] = 1
-
     def check_six_identiques(self, player: Player_new, dice_count):
         if (dice_count == 6).sum() == 1:
-            for i in range(NUM_DICE):
-                if i == 0 and dice_count[i] == 6:
-                    player.potential_score += 0.8
-                if i > 0 and dice_count[i] == 6:
-                    player.potential_score += (i + 1) / 12.5
-        self.reset_saved_dices()
-        self.launch_dices()
-        self.available_actions(player)
+            mult = dice_count / 6 * np.array([0.8, 0.16, 0.24, 0.32, 0.4, 0.48])
+            player.potential_score += mult.sum()
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
 
+    def check_quaq_and_pair(self, player: Player_new, dice_count):
+        if (dice_count == 4).sum() == 1 and (dice_count == 2).sum() == 1:
+            player.potential_score += 0.15
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
 
-    def available_actions(self, player: Player_new):
+    def dices_values_without_saved_dices(self):
+        return (-self.saved_dice + np.ones(NUM_DICE, dtype=int)) * self.dices_values
 
-        dice_count = self.available_dices_value_count()
-
-        # les fonctions suivantes soit relancent tous les dés
+    def check_auto_reroll(self, player: Player_new, dice_count):
         self.check_nothing(player, dice_count)
         self.check_for_suite(player, dice_count)
         self.check_six_identiques(player, dice_count)
+        self.check_quaq_and_pair(player, dice_count)
         self.check_three_pairs(player, dice_count)
         self.check_trois_identiques_twice(player, dice_count)
 
-        # PROBLEME, il faut que ça mette à jour le vecteur d'action du tour
-        # self.check_trois_identiques(player, dice_count)
-        # self.check_quatre_identiques(player, dice_count)
-        # self.check_cinq_identiques(player, dice_count)
+    def handle_dice_reset_and_reroll(self,
+                                     player,
+                                     dice_count,
+                                     available_actions_mask):
 
-        # maintenant il reste que quand il y a moins de 3 ou 1 ou moins de 3 5
-        # il faudra ensuite gérer de relancer si nécessaire
+        available_actions_without_zeros = [int(x) for x in available_actions_mask if x != 0]
+        saved_dices_without_zeros = [int(x) for x in self.saved_dice if x != 0]
+
+        if len(available_actions_without_zeros + saved_dices_without_zeros) == 6:
+            for i in range(len(dice_count)):
+                if dice_count[i] != 0:
+                    player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
+            self.reset_saved_dices()
+            self.launch_dices()
+            self.available_actions(player)
+
+    def available_actions(self, player: Player_new):
+        dice_count = self.available_dices_value_count()
+        self.check_auto_reroll(player, dice_count)
+        dices_values_without_saved_dices = self.dices_values_without_saved_dices()
+        available_actions_mask = calculate_available_actions_mask(dice_count, dices_values_without_saved_dices)
+        self.handle_dice_reset_and_reroll(player, dice_count, available_actions_mask)
+        return available_actions_mask
+        # [1, 0, 0, 0, 0, 0]
+
+    def which_player(self):
+        if self.player_turn == 0:
+            return self.player_1
+        else:
+            return self.player_2
+
+    def check_is_game_over(self, player: Player_new):
+        if player.score >= 1.0:
+            self.is_game_over = True
+        if self.is_game_over:
+            if self.player_turn == 0:
+                self.reward += 1
+            else:
+                self.reward -= 1
+            return
 
 
+    def find_possible_keys(self, available_actions_mask):
+        new_mask = np.append(available_actions_mask, 1)
+
+        indices_ones = [i for i, x in enumerate(new_mask) if x == 1]
+        indices_twos = [i for i, x in enumerate(new_mask) if x == 2]
+
+        # Utiliser un ensemble pour éviter les doublons dans les résultats
+        result_set = set()
+
+        # Générer toutes les combinaisons pour les indices de `1`
+        for combo_ones in product([0, 1], repeat=len(indices_ones)):
+            # Appliquer chaque combinaison de `1` aux positions de `indices_ones`
+            base_vector = new_mask[:]
+            for idx, value in zip(indices_ones, combo_ones):
+                base_vector[idx] = value
+
+            # Si `indices_twos` est vide, on n’a pas besoin de boucler sur `twos_option`
+            twos_options = [2, 0] if indices_twos else [None]
+
+            for twos_option in twos_options:
+                new_vector = base_vector[:]
+                # Si `twos_option` est `None`, on saute la modification des `2`
+                if twos_option is not None:
+                    for idx in indices_twos:
+                        new_vector[idx] = twos_option
+
+                # Vérifier qu'il y a au moins un `1` ou au moins un bloc de `2` complet
+                if any(x == 1 for x in new_vector) or all(new_vector[i] == 2 for i in indices_twos):
+                    # Créer une version transformée de `new_vector` où toutes les valeurs non nulles sont `1`
+                    transformed_vector = tuple(np.where(new_vector != 0, 1, 0))  # Utiliser un tuple pour l'ensemble
+
+                    # Vérifier l'existence de `transformed_vector` dans `actions_dict` avant de l’ajouter
+                    for key, value in self.actions_dict.items():
+                        if np.array_equal(value, transformed_vector):
+                            result_set.add(key)  # Ajout au set pour éviter les doublons
+                            break
+
+        # Convertir l'ensemble en liste pour la sortie
+        return list(result_set)
+
+    def random_action(self, available_actions_keys):
+        return random.choice(self.find_possible_keys(available_actions_keys))
 
 
+    # comment le joueur fait quand il ne peut pas jouer ?
 
+    def step(self, action_key):
+        player = self.which_player()
 
+        if self.is_game_over:
+            raise Exception("Game is over, please reset the game")
 
+        # if sum(action) == 0.0 or len(action) == 0:
+        #     self.end_turn_score(False, player)
+        #     if self.player_turn == 1:
+        #         self.launch_dices()
+        #         # self.print_dices()
+        #         random_action = self.random_action()
+        #         return self.step(random_action)
+        #     else:
+        #         return
+        #
+        for i in range(NUM_DICE):
+            if self.actions_dict[action_key][i] == 1 and self.saved_dice[i] == 1:
+                raise ValueError(f"Dice {i + 1} already saved, make another action")
 
+        self.update_potential_score(action_key, player)
 
+        if self.actions_dict[action_key][6] == 1:
+            self.end_turn_score(True, player)
+            self.check_is_game_over(player)
+
+            if self.player_turn == 1:
+                self.launch_dices()
+                random_action_key = self.random_action(self.available_actions(player))
+                self.step(random_action_key)
+
+    def play_game_random(self):
+        self.reset()
+        while not self.is_game_over:
+            self.launch_dices()
+            print(self.dices_values)
+            player = self.which_player()
+            print(player)
+            aa = self.available_actions(player)
+            random_action = self.random_action(aa)
+            print('available_actions:', aa)
+            print('random_action:', random_action)
+            self.step(random_action)
+            print('potential_score:', player.potential_score)
+            # self.step(self.random_action(aa))
+            print("player_1 score: ", self.player_1.score)
+            print("player_2 score: ", self.player_2.score)
