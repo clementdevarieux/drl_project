@@ -7,7 +7,7 @@ NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
 NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 3
 
-class Player_new:
+class Player_v2:
 
     def __init__(self, player_id):
         self.score = 0.0
@@ -44,13 +44,13 @@ def calculate_available_actions_mask(dice_count, dices_values_without_saved_dice
     return available_actions_mask
 
 
-class Farkle_new:
+class Farkle_v2:
 
     def __init__(self):
         self.dices_values = np.zeros(NUM_DICE, dtype=int)
         self.saved_dice = np.zeros(NUM_DICE, dtype=int)
-        self.player_1 = Player_new(0)
-        self.player_2 = Player_new(1)
+        self.player_1 = Player_v2(0)
+        self.player_2 = Player_v2(1)
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
         self.reward = 0.0
@@ -251,7 +251,7 @@ class Farkle_new:
         else:
             self.player_turn = 0
 
-    def end_turn_score(self, keep: bool, player: Player_new):
+    def end_turn_score(self, keep: bool, player: Player_v2):
         if keep:
             player.add_score()
             if player.score >= 1.0:
@@ -275,7 +275,7 @@ class Farkle_new:
         print(action_key)
         print(self.actions_dict[action_key])
 
-    def update_potential_score(self, action_key, player: Player_new):
+    def update_potential_score(self, action_key, player: Player_v2):
         dice_count = np.zeros(6)
 
         # action ==> 0 si on garde pas le dé
@@ -388,28 +388,28 @@ class Farkle_new:
         # dice_results = [3, 2, 3, 5, 6, 5]
         # dice_count = [0, 1, 2, 0, 2, 1]
 
-    def check_for_suite(self, player: Player_new, dice_count):
+    def check_for_suite(self, player: Player_v2, dice_count):
         if np.array_equal(dice_count, np.ones(6)):
             player.potential_score += 0.15
             self.reset_saved_dices()
             self.launch_dices()
             self.available_actions(player)
 
-    def check_nothing(self, player: Player_new, dice_count):
+    def check_nothing(self, player: Player_v2, dice_count):
         if np.array_equal(dice_count, np.zeros(6)):
             player.potential_score += 0.05
             self.reset_saved_dices()
             self.launch_dices()
             self.available_actions(player)
 
-    def check_three_pairs(self, player: Player_new, dice_count):
+    def check_three_pairs(self, player: Player_v2, dice_count):
         if (dice_count == 2).sum() == 3:
             player.potential_score += 0.1
             self.reset_saved_dices()
             self.launch_dices()
             self.available_actions(player)
 
-    def check_trois_identiques_twice(self, player: Player_new, dice_count):
+    def check_trois_identiques_twice(self, player: Player_v2, dice_count):
         # [3, 3, 0, 0, 0, 0]
         three_of_a_kind_count = (dice_count == 3).sum()
         if three_of_a_kind_count == 2:
@@ -420,7 +420,7 @@ class Farkle_new:
             self.launch_dices()
             self.available_actions(player)
 
-    def check_six_identiques(self, player: Player_new, dice_count):
+    def check_six_identiques(self, player: Player_v2, dice_count):
         if (dice_count == 6).sum() == 1:
             mult = dice_count / 6 * np.array([0.8, 0.16, 0.24, 0.32, 0.4, 0.48])
             player.potential_score += mult.sum()
@@ -428,7 +428,7 @@ class Farkle_new:
             self.launch_dices()
             self.available_actions(player)
 
-    def check_quaq_and_pair(self, player: Player_new, dice_count):
+    def check_quaq_and_pair(self, player: Player_v2, dice_count):
         if (dice_count == 4).sum() == 1 and (dice_count == 2).sum() == 1:
             player.potential_score += 0.15
             self.reset_saved_dices()
@@ -438,7 +438,7 @@ class Farkle_new:
     def dices_values_without_saved_dices(self):
         return (-self.saved_dice + np.ones(NUM_DICE, dtype=int)) * self.dices_values
 
-    def check_auto_reroll(self, player: Player_new, dice_count):
+    def check_auto_reroll(self, player: Player_v2, dice_count):
         self.check_nothing(player, dice_count)
         self.check_for_suite(player, dice_count)
         self.check_six_identiques(player, dice_count)
@@ -462,7 +462,7 @@ class Farkle_new:
             self.launch_dices()
             self.available_actions(player)
 
-    def available_actions(self, player: Player_new):
+    def available_actions(self, player: Player_v2):
         dice_count = self.available_dices_value_count()
         self.check_auto_reroll(player, dice_count)
         dices_values_without_saved_dices = self.dices_values_without_saved_dices()

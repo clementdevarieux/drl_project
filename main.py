@@ -1,4 +1,4 @@
-# from environnements.Farkle import Farkle
+from environnements.Farkle import Farkle
 from environnements.TicTacToe import TicTacToeVersusRandom
 # from environnements.Farkle_Gui import FarkleGui
 from environnements.GridWorld import GridWorld
@@ -12,8 +12,9 @@ from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 # import algorithmes.DeepQLearning as DeepQLearning
 # import tensorflow as tf
 # import keras
-from environnements.Farkle_new import Farkle_new, Player_new
+from environnements.Farkle_v2 import Farkle_v2, Player_v2
 from environnements.Farkle_v3 import Farkle_v3, Player_v3
+from environnements.Farkle_v4 import Farkle_v4, Player_v4
 
 
 def main():
@@ -89,7 +90,9 @@ def main():
     #     input("Press Enter to continue...")
 
     def run_random_game(nombre_de_parties):
-        env = Farkle_v3()
+        # env = Farkle()
+        # env = Farkle_v2()
+        env = Farkle_v4()
         total_reward = 0
         start_time = time.time()
         for _ in tqdm(range(nombre_de_parties)):
@@ -108,12 +111,19 @@ def main():
     #     env = FarkleGui()
     #     env.run_game_GUI()
 
-    run_random_game(1000)
+    run_random_game(10)
     # run_gui_game()
 
     # env = Farkle_new()
     # env.play_game_random()
 
-for i in range(10):
+    # env = Farkle_v4()
+    # env.launch_dices()
+    # player = Player_v4(0)
+    # aa = env.available_actions(player)
+    # print("available actions: ", aa)
+    # print("random_action", env.random_action(aa))
+
+for i in range(1):
     main()
 
