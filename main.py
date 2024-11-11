@@ -15,6 +15,7 @@ from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 from environnements.Farkle_v2 import Farkle_v2, Player_v2
 from environnements.Farkle_v3 import Farkle_v3, Player_v3
 from environnements.Farkle_v4 import Farkle_v4, Player_v4
+import cProfile
 
 
 def main():
@@ -92,7 +93,7 @@ def main():
     def run_random_game(nombre_de_parties):
         # env = Farkle()
         # env = Farkle_v2()
-        env = Farkle()
+        env = Farkle_v4()
         total_reward = 0
         start_time = time.time()
         for _ in tqdm(range(nombre_de_parties)):
@@ -111,7 +112,7 @@ def main():
     #     env = FarkleGui()
     #     env.run_game_GUI()
 
-    run_random_game(1000)
+    run_random_game(10000)
     # run_gui_game()
 
     # env = Farkle_new()
@@ -125,5 +126,7 @@ def main():
     # print("random_action", env.random_action(aa))
 
 for i in range(1):
+    # cProfile.run("main()")
+
     main()
 
