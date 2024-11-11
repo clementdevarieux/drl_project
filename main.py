@@ -92,7 +92,7 @@ def main():
     def run_random_game(nombre_de_parties):
         # env = Farkle()
         # env = Farkle_v2()
-        env = Farkle_v4()
+        env = Farkle()
         total_reward = 0
         start_time = time.time()
         for _ in tqdm(range(nombre_de_parties)):
@@ -111,7 +111,7 @@ def main():
     #     env = FarkleGui()
     #     env.run_game_GUI()
 
-    run_random_game(10)
+    run_random_game(1000)
     # run_gui_game()
 
     # env = Farkle_new()

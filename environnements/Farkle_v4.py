@@ -343,14 +343,14 @@ class Farkle_v4:
             (0, 2, 0, 2, 0, 2): [42, 106],
             (1, 2, 0, 2, 0, 2): [1, 65, 42, 106, 43, 107],
             (2, 1, 0, 2, 0, 2): [2, 66, 41, 105, 43, 107],
-            (2, 2, 0, 1, 0, 2): [4, 68, 39, 103, 43, 107],
-            (2, 2, 0, 2, 0, 1): [16, 80, 35, 99, 43, 107],
+            (2, 2, 0, 1, 0, 2): [8, 35, 43, 72, 99, 107],
+            (2, 2, 0, 2, 0, 1): [11, 32, 43, 75, 96, 107],
             (2, 2, 0, 2, 0, 2): [43, 107],
             (0, 0, 2, 2, 0, 2): [44, 108],
             (1, 0, 2, 2, 0, 2): [1, 65, 44, 108, 45, 109],
             (2, 0, 1, 2, 0, 2): [4, 68, 41, 105, 45, 109],
-            (2, 0, 2, 1, 0, 2): [8, 72, 42, 106, 45, 109],
-            (2, 0, 2, 2, 0, 1): [16, 80, 37, 101, 45, 109],
+            (2, 0, 2, 1, 0, 2): [8, 37, 45, 72, 101, 109],
+            (2, 0, 2, 2, 0, 1): [13, 32, 45, 77, 96, 109],
             (2, 0, 2, 2, 0, 2): [45, 109],
             (0, 1, 2, 2, 0, 2): [2, 66, 44, 108, 46, 110],
             (0, 2, 1, 2, 0, 2): [4, 68, 42, 106, 46, 110],
@@ -695,19 +695,19 @@ class Farkle_v4:
             self.launch_dices()
             return self.available_actions(player)
 
-    def check_nothing(self, player: Player_v4, dice_count):
-        if np.array_equal(dice_count, np.zeros(6)):
+    def check_nothing(self, player: Player_v4, available_actions_mask):
+        if available_actions_mask.sum() == 0.0 and np.array_equal(self.saved_dice, [0, 0, 0, 0, 0, 0]):
             player.potential_score += 0.05
             self.reset_saved_dices()
             self.launch_dices()
-            return self.available_actions(player)
+            return True
 
     def check_three_pairs(self, player: Player_v4, dice_count):
         if (dice_count == 2).sum() == 3:
             player.potential_score += 0.1
             self.reset_saved_dices()
             self.launch_dices()
-            return self.available_actions(player)
+            # return self.available_actions(player)
 
     def check_trois_identiques_twice(self, player: Player_v4, dice_count):
         # [3, 3, 0, 0, 0, 0]
@@ -718,7 +718,7 @@ class Farkle_v4:
             player.potential_score += mult.sum()
             self.reset_saved_dices()
             self.launch_dices()
-            return self.available_actions(player)
+            # return self.available_actions(player)
 
     def check_six_identiques(self, player: Player_v4, dice_count):
         if (dice_count == 6).sum() == 1:
@@ -726,14 +726,14 @@ class Farkle_v4:
             player.potential_score += mult.sum()
             self.reset_saved_dices()
             self.launch_dices()
-            return self.available_actions(player)
+            # return self.available_actions(player)
 
     def check_quaq_and_pair(self, player: Player_v4, dice_count):
         if (dice_count == 4).sum() == 1 and (dice_count == 2).sum() == 1:
             player.potential_score += 0.15
             self.reset_saved_dices()
             self.launch_dices()
-            return self.available_actions(player)
+            # return self.available_actions(player)
 
     # def dices_values_without_saved_dices(self):
     #     return (-self.saved_dice + np.ones(NUM_DICE, dtype=int)) * self.dices_values
@@ -748,7 +748,6 @@ class Farkle_v4:
         return dices_values_without_saved_dices
 
     def check_auto_reroll(self, player: Player_v4, dice_count):
-        self.check_nothing(player, dice_count)
         self.check_for_suite(player, dice_count)
         self.check_six_identiques(player, dice_count)
         self.check_quaq_and_pair(player, dice_count)
@@ -794,7 +793,7 @@ class Farkle_v4:
                     player.potential_score += self.scoring_rules[(i + 1, dice_count[i])]
             self.reset_saved_dices()
             self.launch_dices()
-            self.available_actions(player)
+            return True
         # print("Exiting handle_dice_reset_and_reroll")
 
     def available_actions(self, player: Player_v4):
@@ -803,9 +802,13 @@ class Farkle_v4:
         # print("saved_dices: ", self.saved_dice)
         dice_count = self.available_dices_value_count()
         self.check_auto_reroll(player, dice_count)
+        dice_count = self.available_dices_value_count()
         dices_values_without_saved_dices = self.dices_values_without_saved_dices()
         available_actions_mask = calculate_available_actions_mask(dice_count, dices_values_without_saved_dices)
-        self.handle_dice_reset_and_reroll(player, dice_count, available_actions_mask)
+        if self.check_nothing(player, available_actions_mask) == True:
+            return self.available_actions(player)
+        elif self.handle_dice_reset_and_reroll(player, dice_count, available_actions_mask) == True:
+            return self.available_actions(player)
         # print("calculate_available_actions_mask", available_actions_mask)
         # print("available_actions_mask:", available_actions_mask)
         # print("Exiting available_actions")
@@ -860,7 +863,6 @@ class Farkle_v4:
     def random_action(self, available_actions):
         return random.choice(self.available_action_keys_from_action[tuple(available_actions)])
 
-
     def step(self, action_key):
         player = self.which_player()
         if self.is_game_over:
@@ -873,10 +875,18 @@ class Farkle_v4:
                 self.launch_dices()
                 random_action_key = self.random_action(self.available_actions(player))
                 self.step(random_action_key)
-            else:
-                return
+            return
+            #     if self.player_turn == 0:
+            #         return
+            # else:
+            #     return
         for i in range(NUM_DICE):
             if self.actions_dict[action_key][i] == 1 and self.saved_dice[i] == 1:
+                print(action_key)
+                print(self.available_actions(self.which_player()))
+                print(self.dices_values)
+                print(self.saved_dice)
+                print(self.state_description())
                 raise ValueError(f"Dice {i + 1} already saved, make another action")
 
         self.update_potential_score(action_key, player)
@@ -889,12 +899,39 @@ class Farkle_v4:
                 self.launch_dices()
                 random_action_key = self.random_action(self.available_actions(player))
                 self.step(random_action_key)
+            return
+                # if self.player_turn == 0:
+                #     return
+    def restore_from_state(self, state: np.ndarray):
+        for i in range(NUM_DICE):
+            dice_one_hot = state[i * 6:(i + 1) * 6]
+            dice_value = np.argmax(dice_one_hot) + 1  # La valeur est décalée de 1
+            self.dices_values[i] = dice_value
+
+        for i in range(NUM_DICE):
+            dice_saved_one_hot = state[NUM_DICE_VALUE_ONE_HOT + i * 2: NUM_DICE_VALUE_ONE_HOT + (i + 1) * 2]
+            is_scorable = np.argmax(dice_saved_one_hot)
+            self.saved_dice[i] = is_scorable
+
+        self.player_1.potential_score = state[NUM_STATE_FEATURES - 3]
+        self.player_1.score = state[NUM_STATE_FEATURES - 2]
+        self.player_2.score = state[NUM_STATE_FEATURES - 1]
+
+        self.is_game_over = False
+        self.turn = 0
+        self.reward = 0
+        self.player_turn = 0
 
     def play_game_random(self):
         self.reset()
         while not self.is_game_over:
             self.launch_dices()
             # print(self.dices_values)
+            # if count == 0:
+            #     self.player_turn = 0
+            #     self.dices_values = np.array([1,1,1,5,5,5])
+            #     self.saved_dice = np.array([1,0,1,0,0,1])
+            # else:
             player = self.which_player()
             # print(player)
             aa = self.available_actions(player)
