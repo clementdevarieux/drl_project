@@ -49,6 +49,7 @@ class Farkle_v4:
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
         self.reward = 0.0
+        self.is_dices_reset = False
         self.scoring_rules = {
             (1, 1): 0.01,
             (1, 2): 0.02,
@@ -508,16 +509,6 @@ class Farkle_v4:
             (2, 2, 2, 1, 1, 1): [63]
         }
 
-    #
-    # def reset(self):
-    #     self.dices_values = np.zeros(NUM_DICE, dtype=int)
-    #     self.saved_dice = np.zeros(NUM_DICE, dtype=int)
-    #     self.player_1.reset()
-    #     self.player_2.reset()
-    #     self.player_turn = random.randint(0, 1)
-    #     self.is_game_over = False
-    #     self.reward = 0.0
-
     def reset(self):
         self.dices_values.fill(0)
         self.saved_dice.fill(0)
@@ -527,11 +518,6 @@ class Farkle_v4:
         self.is_game_over = False
         self.reward = 0.0
 
-    # def launch_dices(self):
-    #     for i in range(NUM_DICE):
-    #         if self.saved_dice[i] == 0:
-    #             self.dices_values[i] = np.random.randint(1, 7)
-
     def launch_dices(self):
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:
@@ -539,8 +525,8 @@ class Farkle_v4:
 
 
     def reset_saved_dices(self):
-        self.dices_values = np.zeros((NUM_DICE,), dtype=int)
-        self.saved_dice = np.zeros((NUM_DICE,), dtype=int)
+        self.dices_values.fill(0)
+        self.saved_dice.fill(0)
 
     def state_description(self):
         state = np.zeros(NUM_STATE_FEATURES)
@@ -701,7 +687,7 @@ class Farkle_v4:
             player.potential_score += 0.15
             self.reset_saved_dices()
             self.launch_dices()
-            # return self.available_actions(player)
+            self.is_dices_reset = True
 
     def check_nothing(self, player: Player_v4, available_actions_mask):
         if np.add.reduce(available_actions_mask) == 0.0 and all(dice == 0 for dice in self.saved_dice):
@@ -715,6 +701,7 @@ class Farkle_v4:
             player.potential_score += 0.1
             self.reset_saved_dices()
             self.launch_dices()
+            self.is_dices_reset = True
             # return self.available_actions(player)
 
     def check_trois_identiques_twice(self, player: Player_v4, dice_count):
@@ -727,7 +714,7 @@ class Farkle_v4:
             player.potential_score += np.add.reduce(mult)
             self.reset_saved_dices()
             self.launch_dices()
-            # return self.available_actions(player)
+            self.is_dices_reset = True
 
     def check_six_identiques(self, player: Player_v4, dice_count):
         if np.count_nonzero(dice_count == 6) == 1:
@@ -735,14 +722,14 @@ class Farkle_v4:
             player.potential_score += np.add.reduce(mult)
             self.reset_saved_dices()
             self.launch_dices()
-            # return self.available_actions(player)
+            self.is_dices_reset = True
 
     def check_quaq_and_pair(self, player: Player_v4, dice_count):
         if np.count_nonzero(dice_count == 4) == 1 and np.count_nonzero(dice_count == 2) == 1:
             player.potential_score += 0.15
             self.reset_saved_dices()
             self.launch_dices()
-            # return self.available_actions(player)
+            self.is_dices_reset = True
 
     def dices_values_without_saved_dices(self):
         dices_values_without_saved_dices = []
@@ -752,7 +739,6 @@ class Farkle_v4:
             else:
                 dices_values_without_saved_dices.append(0)
         return dices_values_without_saved_dices
-
 
     def check_auto_reroll(self, player: Player_v4, dice_count):
         self.check_for_suite(player, dice_count)
@@ -773,12 +759,13 @@ class Farkle_v4:
             self.reset_saved_dices()
             self.launch_dices()
             return True
-        # print("Exiting handle_dice_reset_and_reroll")
 
     def available_actions(self, player: Player_v4):
         dice_count = self.available_dices_value_count()
         self.check_auto_reroll(player, dice_count)
-        dice_count = self.available_dices_value_count()
+        if self.is_dices_reset:
+            dice_count = self.available_dices_value_count()
+            self.is_dices_reset = False
         dices_values_without_saved_dices = self.dices_values_without_saved_dices()
         available_actions_mask = calculate_available_actions_mask(dice_count, dices_values_without_saved_dices)
         if self.check_nothing(player, available_actions_mask):
