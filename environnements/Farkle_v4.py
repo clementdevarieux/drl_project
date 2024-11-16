@@ -811,3 +811,25 @@ class Farkle_v4:
             aa = self.available_actions(player)
             random_action = self.random_action(aa)
             self.step(random_action)
+
+    def restore_from_state(self, state: np.ndarray):
+        for i in range(NUM_DICE):
+            dice_one_hot = state[i * 6:(i + 1) * 6]
+            dice_value = np.argmax(dice_one_hot) + 1  # La valeur est décalée de 1
+            self.dices_values[i] = dice_value
+
+        for i in range(NUM_DICE):
+            dice_saved_one_hot = state[NUM_DICE_VALUE_ONE_HOT + i * 2: NUM_DICE_VALUE_ONE_HOT + (i + 1) * 2]
+            is_scorable = np.argmax(dice_saved_one_hot)
+            self.saved_dice[i] = is_scorable
+
+        self.player_1.potential_score = state[NUM_STATE_FEATURES - 3]
+        self.player_1.score = state[NUM_STATE_FEATURES - 2]
+        self.player_2.score = state[NUM_STATE_FEATURES - 1]
+
+        self.is_game_over = False
+        self.reward = 0
+        self.player_turn = 0
+
+    def is_game_over(self) -> bool:
+        return self.is_game_over
