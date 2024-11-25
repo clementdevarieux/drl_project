@@ -18,10 +18,10 @@ class Player_v4:
         self.potential_score = 0.0
 
     def add_potential_score(self, points):
-        self.potential_score += points
+        self.potential_score += round(float(points), 4)
 
     def add_score(self):
-        self.score += self.potential_score
+        self.score += round(float(self.potential_score), 4)
 
 def calculate_available_actions_mask(dice_count, dices_values_without_saved_dices):
     available_actions_vec = [i + 1 for i, value in enumerate(dice_count) if value > 2 or ((i == 0 or i == 4) and value >= 1)]
@@ -588,93 +588,6 @@ class Farkle_v4:
 
         self.update_saved_dice(action_key)
 
-
-    def print_dices(self):
-        print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
-        if self.player_turn == 0:
-            print("C'est le tour du joueur 1")
-        else:
-            print("C'est le tour du joueur 2")
-
-        dices_visual = {
-            1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
-            2: ("┌─────┐", "│ ●   │", "│     │", "│   ● │", "└─────┘"),
-            3: ("┌─────┐", "│ ●   │", "│  ●  │", "│   ● │", "└─────┘"),
-            4: ("┌─────┐", "│ ● ● │", "│     │", "│ ● ● │", "└─────┘"),
-            5: ("┌─────┐", "│ ● ● │", "│  ●  │", "│ ● ● │", "└─────┘"),
-            6: ("┌─────┐", "│ ● ● │", "│ ● ● │", "│ ● ● │", "└─────┘"),
-        }
-
-        red_dices_visual = {
-            1: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│     │\033[0m",
-                "\033[91m│  ●  │\033[0m",
-                "\033[91m│     │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            ),
-            2: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│ ●   │\033[0m",
-                "\033[91m│     │\033[0m",
-                "\033[91m│   ● │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            ),
-            3: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│ ●   │\033[0m",
-                "\033[91m│  ●  │\033[0m",
-                "\033[91m│   ● │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            ),
-            4: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m│     │\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            ),
-            5: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m│  ●  │\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            ),
-            6: (
-                "\033[91m┌─────┐\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m│ ● ● │\033[0m",
-                "\033[91m└─────┘\033[0m"
-            )
-        }
-
-        lines = [""] * 5
-        for i, value in enumerate(self.dices_values):
-            if int(self.saved_dice[i]) == 0:
-                face = dices_visual[value]
-            else:
-                face = red_dices_visual[value]
-            for i in range(5):
-                lines[i] += face[i] + "  "
-
-        for line in lines:
-            print(line)
-
-        print("n°: 1  /    2   /    3   /    4   /    5   /    6\n")
-
-        print(f"Dés déjà sauvegardés: {self.saved_dice}\n")
-
-        if self.player_turn == 0:
-            print(f"Score potentiel en cours: {self.player_1.potential_score * 10000}")
-        else:
-            print(f"Score potentiel en cours: {self.player_2.potential_score * 10000}")
-
-        print(f"Score du joueur 1: {self.player_1.score * 10000}")
-        print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
-
-
     def available_dices_value_count(self):
         dice_count = np.zeros(6)
         for i in range(NUM_DICE):
@@ -836,3 +749,98 @@ class Farkle_v4:
 
     def is_game_over(self) -> bool:
         return self.is_game_over
+
+    def action_mask(self, aa) -> np.ndarray:
+        mask_keys = self.available_action_keys_from_action[tuple(aa)]
+        return np.array([1 if i in mask_keys else 0 for i in range(127)])
+
+    def player_2_random_play(self):
+        self.launch_dices()
+        # self.print_dices()
+        random_action = self.random_action(self.available_actions(self.which_player()))
+        self.step(random_action)
+
+    def print_dices(self):
+        print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
+        if self.player_turn == 0:
+            print("C'est le tour du joueur 1")
+        else:
+            print("C'est le tour du joueur 2")
+
+        dices_visual = {
+            1: ("┌─────┐", "│     │", "│  ●  │", "│     │", "└─────┘"),
+            2: ("┌─────┐", "│ ●   │", "│     │", "│   ● │", "└─────┘"),
+            3: ("┌─────┐", "│ ●   │", "│  ●  │", "│   ● │", "└─────┘"),
+            4: ("┌─────┐", "│ ● ● │", "│     │", "│ ● ● │", "└─────┘"),
+            5: ("┌─────┐", "│ ● ● │", "│  ●  │", "│ ● ● │", "└─────┘"),
+            6: ("┌─────┐", "│ ● ● │", "│ ● ● │", "│ ● ● │", "└─────┘"),
+        }
+
+        red_dices_visual = {
+            1: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│     │\033[0m",
+                "\033[91m│  ●  │\033[0m",
+                "\033[91m│     │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            ),
+            2: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│ ●   │\033[0m",
+                "\033[91m│     │\033[0m",
+                "\033[91m│   ● │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            ),
+            3: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│ ●   │\033[0m",
+                "\033[91m│  ●  │\033[0m",
+                "\033[91m│   ● │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            ),
+            4: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m│     │\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            ),
+            5: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m│  ●  │\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            ),
+            6: (
+                "\033[91m┌─────┐\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m│ ● ● │\033[0m",
+                "\033[91m└─────┘\033[0m"
+            )
+        }
+
+        lines = [""] * 5
+        for i, value in enumerate(self.dices_values):
+            if int(self.saved_dice[i]) == 0:
+                face = dices_visual[value]
+            else:
+                face = red_dices_visual[value]
+            for i in range(5):
+                lines[i] += face[i] + "  "
+
+        for line in lines:
+            print(line)
+
+        print("n°: 1  /    2   /    3   /    4   /    5   /    6\n")
+
+        print(f"Dés déjà sauvegardés: {self.saved_dice}\n")
+
+        if self.player_turn == 0:
+            print(f"Score potentiel en cours: {self.player_1.potential_score * 10000}")
+        else:
+            print(f"Score potentiel en cours: {self.player_2.potential_score * 10000}")
+
+        print(f"Score du joueur 1: {self.player_1.score * 10000}")
+        print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
