@@ -50,6 +50,7 @@ class Farkle_v4:
         self.is_game_over = False
         self.reward = 0.0
         self.is_dices_reset = False
+        self.number_of_steps = 0
         self.scoring_rules = {
             (1, 1): 0.01,
             (1, 2): 0.02,
@@ -517,6 +518,7 @@ class Farkle_v4:
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
         self.reward = 0.0
+        self.number_of_steps = 0
 
     def launch_dices(self):
         for i in range(NUM_DICE):
@@ -785,6 +787,7 @@ class Farkle_v4:
 
     def step(self, action_key):
         player = self.which_player()
+        self.number_of_steps += 1
         if self.is_game_over:
             raise Exception("Game is over, please reset the game")
 
