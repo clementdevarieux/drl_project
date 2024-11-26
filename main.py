@@ -17,24 +17,24 @@ import cProfile
 
 def main():
     #
-    env = Farkle_v4()
+    # env = Farkle_v4()
+    # #
+    # output_nbr = 127 # 127 représente toutes les combinaisons possibles, 2 puissance 7 - 1 car obligé d'avoir au min 1 dé?
+    # # output_nbr = 9
+    # # # à confirmer si c'est correcte
+    # #
+    # model = keras.Sequential([
+    #     keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    # ])
+    # #
+    # model = DeepQLearning.deepQLearning(model, env, 2000, 0.999, 0.001, 1.0, 0.00001, 100, 16)
+    # #
+    # model.save('model/farkle_2000_it')
     #
-    output_nbr = 127 # 127 représente toutes les combinaisons possibles, 2 puissance 7 - 1 car obligé d'avoir au min 1 dé?
-    # output_nbr = 9
-    # # à confirmer si c'est correcte
-    #
-    model = keras.Sequential([
-        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    ])
-    #
-    model = DeepQLearning.deepQLearning(model, env, 2000, 0.999, 0.001, 1.0, 0.00001, 100, 16)
-    #
-    model.save('model/farkle_2000_it')
-
-    model = tf.keras.models.load_model('model/farkle_2000_it', custom_objects=None, compile=True, safe_mode=True)
+    # model = tf.keras.models.load_model('model/farkle_2000_it', custom_objects=None, compile=True, safe_mode=True)
     #
     # Play 1000 games and print mean score
     # total_score = 0.0
@@ -129,6 +129,17 @@ def main():
     # aa = env.available_actions(player)
     # print("available actions: ", aa)
     # print("random_action", env.random_action(aa))
+
+    env = TicTacToeVersusRandom()
+    Pi, mean_score, num_of_steps = env.Q_learning_off_policy(0.9, 0.1, 0.1, 100_000, 100_000, 1000)
+    params = {"gamma": 0.9, "epsilon": 0.1, "alpha": 0.1, "nb_iter": 100_000, "max_steps": 100_000}
+    print(mean_score)
+    print(num_of_steps)
+    # print(Pi)
+    dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": params}
+
+    with open("results/TicTacToe/Q_learning/tictactoe_qlearning_100000.txt", "w") as f:
+        f.write(str(dict_to_write))
 
 for i in range(1):
     # cProfile.run("main()")
