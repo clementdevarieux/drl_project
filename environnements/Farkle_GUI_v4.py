@@ -872,5 +872,15 @@ class Farkle_GUI_v4:
             for action in aa:
                 print(f"{action}: {self.actions_dict[action]}")
 
-            var = input("Choose one action and press Enter: ")
+            while True:
+                var = input("Choose one action and press Enter: ")
+                try:
+                    var = int(var)
+                    if var in aa:
+                        break
+                    else:
+                        print("Invalid action. Please choose a valid action from the list.")
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+
             self.step(int(var))
