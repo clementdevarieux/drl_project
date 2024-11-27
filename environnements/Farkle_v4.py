@@ -1,5 +1,7 @@
 import numpy as np
 import random
+from collections import defaultdict
+from tqdm import tqdm
 
 NUM_DICE_VALUE_ONE_HOT = 36
 NUM_DICE_SAVED_ONE_HOT = 12
@@ -844,3 +846,253 @@ class Farkle_v4:
 
         print(f"Score du joueur 1: {self.player_1.score * 10000}")
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
+
+    def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps):
+        Q = defaultdict(lambda: random.random())
+        Pi = {}
+        mean_score = []
+        num_of_steps = []
+        total_score = 0
+        total_steps = 0
+
+        for i in tqdm(range(nb_iter)):
+            self.reset()
+            steps_count = 0
+            while steps_count < max_steps and not self.is_game_over:
+                if self.player_turn == 1:
+                    self.player_2_random_play()
+                    continue
+                else:
+                    self.launch_dices()
+                    s = tuple(self.state_description())
+                    aa = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+
+                    for a in aa:
+                        if (s, a) not in Q:
+                            Q[(s, a)] = random.random()
+
+                    random_value = random.uniform(0, 1)
+                    if random_value < epsilon:
+                        a = self.random_action(self.available_actions(self.which_player()))
+                    else:
+                        best_a = None
+                        best_a_score = None
+                        for a in aa:
+                            if best_a is None or Q[(s, a)] > best_a_score:
+                                best_a = a
+                                best_a_score = Q[(s, a)]
+                        a = best_a
+
+                    prev_score = self.player_1.score
+                    self.step(a)
+                    r = self.player_1.score - prev_score
+
+                    s_p = tuple(self.state_description())
+                    aa_p = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+
+                    if self.is_game_over:
+                        target = r
+                    else:
+                        best_a_p = None
+                        best_a_score_p = None
+                        for a_p in aa_p:
+                            if (s_p, a_p) not in Q:
+                                Q[(s_p, a_p)] = random.random()
+                            if best_a_p is None or Q[(s_p, a_p)] > best_a_score_p:
+                                best_a_p = a_p
+                                best_a_score_p = Q[(s_p, a_p)]
+                        target = r + gamma * best_a_score_p
+
+                    updated_gain = (1.0 - alpha) * Q[(s, a)] + alpha * target
+                    Q[(s, a)] = updated_gain
+
+
+            total_score += self.reward
+            total_steps += self.number_of_steps
+            if i % 10000 == 0 and i != 0:
+                mean_score.append(total_score / 10000)
+                num_of_steps.append(total_steps / 10000)
+                print(f"Mean score after {i} iterations: {total_score / 10000}")
+                print(f"Mean number of steps after {i} iterations: {total_steps / 10000}")
+                total_score = 0
+                total_steps = 0
+
+        All_States_Actions = defaultdict(list)
+        for (s, a) in Q.keys():
+            if a not in All_States_Actions[s]:
+                All_States_Actions[s].append(a)
+
+        for s, a_Vec in All_States_Actions.items():
+            best_a = None
+            best_a_score = None
+            for action in a_Vec:
+                if best_a is None or Q[(s, action)] > best_a_score:
+                    best_a = action
+                    best_a_score = Q[(s, action)]
+            Pi[s] = best_a
+
+        return Pi, mean_score, num_of_steps
+
+
+    # def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps, eval_interval=10000):
+    #     Q = defaultdict(lambda: random.random())
+    #     mean_score = []
+    #     num_of_steps = []
+    #
+    #     for i in tqdm(range(nb_iter)):
+    #         self.reset()
+    #         steps_count = 0
+    #
+    #         while steps_count < max_steps and not self.is_game_over:
+    #             self.launch_dices()
+    #             # print("dice values", self.dices_values)
+    #             s = tuple(self.state_description())
+    #             aa = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+    #             # print("available actions", aa)
+    #
+    #             for a in aa:
+    #                 if (s, a) not in Q:
+    #                     Q[(s, a)] = random.random()
+    #
+    #             random_value = random.uniform(0, 1)
+    #             # print("random value", random_value)
+    #             # print("epsilon", epsilon)
+    #             if random_value < epsilon:
+    #                 # aa_temp = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+    #                 # print("available actions temp", aa_temp)
+    #                 a = self.random_action(self.available_actions(self.which_player())) #random.choice(self.available_actions_ids())
+    #                 # print("random action", a)
+    #             else:
+    #                 best_a = None
+    #                 best_a_score = None
+    #                 for a in aa:
+    #                     if best_a is None or Q[(s, a)] > best_a_score:
+    #                         best_a = a
+    #                         best_a_score = Q[(s, a)]
+    #                 a = best_a
+    #
+    #             prev_score = self.reward
+    #             self.step(a)
+    #             r = self.reward - prev_score
+    #
+    #             s_p = tuple(self.state_description())
+    #             aa_p = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+    #
+    #             if self.is_game_over:
+    #                 target = r
+    #             else:
+    #                 best_a_p = None
+    #                 best_a_score_p = None
+    #                 for a_p in aa_p:
+    #                     if (s_p, a_p) not in Q:
+    #                         Q[(s_p, a_p)] = random.random()
+    #                     if best_a_p is None or Q[(s_p, a_p)] > best_a_score_p:
+    #                         best_a_p = a_p
+    #                         best_a_score_p = Q[(s_p, a_p)]
+    #                 target = r + gamma * best_a_score_p
+    #
+    #             updated_gain = (1.0 - alpha) * Q[(s, a)] + alpha * target
+    #             Q[(s, a)] = updated_gain
+    #
+    #             steps_count += 1
+    #
+    #         if i % eval_interval == 100 and i != 0:
+    #             Pi = self.update_policy(Q)
+    #             eval_score, eval_steps = self.run_game_Pi(Pi)
+    #             mean_score.append(eval_score)
+    #             num_of_steps.append(eval_steps)
+    #
+    #     Pi = self.update_policy(Q)
+    #     return Pi, mean_score, num_of_steps
+    #
+    # def update_policy(self, Q):
+    #     Pi = {}
+    #     All_States_Actions = defaultdict(list)
+    #     for (s, a) in Q.keys():
+    #         if a not in All_States_Actions[s]:
+    #             All_States_Actions[s].append(a)
+    #
+    #     for s, a_Vec in All_States_Actions.items():
+    #         best_a = None
+    #         best_a_score = None
+    #         for action in a_Vec:
+    #             if best_a is None or Q[(s, action)] > best_a_score:
+    #                 best_a = action
+    #                 best_a_score = Q[(s, action)]
+    #         Pi[s] = best_a
+    #
+    #     return Pi
+
+    def run_game_Pi(self, Pi, num_of_games):
+        total_score = 0
+        total_steps = 0
+        print("entering run game Pi with calculated policy")
+        for _ in tqdm(range(num_of_games)):
+            self.reset()
+            self.launch_dices()
+            while not self.is_game_over:
+                s = tuple(self.state_description())
+                if s in Pi:
+                    a = Pi[s]
+                else:
+                    a = self.random_action(self.available_actions(self.which_player()))
+                self.step(a)
+            total_score += self.reward
+            total_steps += self.number_of_steps
+        return total_score/num_of_games, total_steps/num_of_games
+
+    def monte_carlo_random_rollout(self, nb_simulations_per_action):
+        best_action = None
+        best_mean_score = -float('inf')
+
+        possible_actions = self.available_action_keys_from_action[tuple(self.available_actions(self.which_player()))]
+
+        for action in possible_actions:
+            total_score = 0.0
+            for _ in range(nb_simulations_per_action):
+                # Create a copy of the environment
+                env_copy = Farkle_v4()
+                env_copy.restore_from_state(self.state_description())
+
+                # Perform the action
+                env_copy.step(action)
+
+                # Perform a random rollout
+                score = self.random_rollout(env_copy)
+
+                total_score += score
+
+            mean_score = total_score / nb_simulations_per_action
+
+            if mean_score > best_mean_score:
+                best_mean_score = mean_score
+                best_action = action
+
+        return best_action
+
+    def random_rollout(self, env):
+        while not env.is_game_over:
+            action = env.random_action(env.available_actions(env.which_player()))
+            env.step(action)
+        return env.reward
+
+    def launch_mcrr(self, number_of_replay):
+        self.reset()
+        while not self.is_game_over:
+            if self.player_turn == 1:
+                self.player_2_random_play()
+                continue
+            else:
+                self.launch_dices()
+                # print("dice values", self.dices_values)
+                best_action = self.monte_carlo_random_rollout(number_of_replay)
+                self.step(best_action)
+                # print("best action", best_action)
+                # print("chosen action", self.actions_dict[best_action])
+                # print("player 1 potential score", self.player_1.potential_score)
+                # print("player 1 score", self.player_1.score)
+                # # print("player 2 potential score", self.player_2.potential_score)
+                # print("player 2 score", self.player_2.score)
+                # print("-----------------------------------")
+
+        return self.reward, self.number_of_steps, self.player_1.score, self.player_2.score

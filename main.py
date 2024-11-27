@@ -130,15 +130,37 @@ def main():
     # print("available actions: ", aa)
     # print("random_action", env.random_action(aa))
 
-    env = TicTacToeVersusRandom()
-    Pi, mean_score, num_of_steps = env.Q_learning_off_policy(0.9, 0.1, 0.1, 100_000, 100_000, 1000)
-    params = {"gamma": 0.9, "epsilon": 0.1, "alpha": 0.1, "nb_iter": 100_000, "max_steps": 100_000}
-    print(mean_score)
-    print(num_of_steps)
+    # env = Farkle_v4()
+    # Pi, mean_score, num_of_steps = env.Q_learning_off_policy(0.999, 0.1, 0.1, 100000, 100_000)
+    # # params = {"gamma": 0.99, "epsilon": 0.05, "alpha": 0.01, "nb_iter": 100000, "max_steps": 1_000_000}
+    # print(mean_score)
+    # print(num_of_steps)
     # print(Pi)
-    dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": params}
+    # dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": params}
+    #
+    # with open("results/Farkle/Q_learning/farkle_qlearning_100000.txt", "w") as f:
+    #     f.write(str(dict_to_write))
 
-    with open("results/TicTacToe/Q_learning/tictactoe_qlearning_100000.txt", "w") as f:
+    # mean_score, mean_num_steps = env.run_game_Pi(Pi, 1)
+    # print(mean_score)
+    # print(mean_num_steps)
+
+    score_after = []
+    steps_after = []
+    number_of_simulations = []
+    number_of_sims = 10
+    for _ in tqdm(range(101)):
+        env = TicTacToeVersusRandom()
+        score, steps = env.launch_mcrr(number_of_sims)
+        print(score, steps, number_of_sims)
+        score_after.append(score)
+        steps_after.append(steps)
+        number_of_simulations.append(number_of_sims)
+        number_of_sims += 10
+
+    dict_to_write = {"score": score_after, "num_of_steps": steps_after, "number_of_simulations": number_of_simulations}
+
+    with open("results/TicTacToe/MCRR/tictactoe_mcrr_100_games.txt", "w") as f:
         f.write(str(dict_to_write))
 
 for i in range(1):

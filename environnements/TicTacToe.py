@@ -136,95 +136,6 @@ class TicTacToeVersusRandom():
         return total_score/num_of_games, total_steps/num_of_games
 
 
-    # def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps):
-    #     Q = defaultdict(lambda: random.random())  # Utilise un dictionnaire par défaut avec des valeurs aléatoires
-    #     Pi = {}  # Politique qui sera apprise
-    #     mean_score = []
-    #     num_of_steps = []
-    #     total_score = 0
-    #     total_steps = 0
-    #     for i in range(nb_iter):
-    #         self.reset()
-    #         steps_count = 0
-    #
-    #         while steps_count < max_steps and not self.is_game_over():
-    #             s = tuple(self._board)
-    #             aa = self.available_actions_ids()
-    #
-    #             # Initialiser les valeurs Q si elles n'existent pas encore
-    #             for a in aa:
-    #                 if (s, a) not in Q:
-    #                     Q[(s, a)] = random.random()
-    #
-    #             # Choix de l'action basée sur epsilon-greedy
-    #             random_value = random.uniform(0, 1)
-    #             if random_value < epsilon:
-    #                 a = random.choice(self.available_actions_ids())
-    #             else:
-    #                 # Trouver la meilleure action (greedy)
-    #                 best_a = None
-    #                 best_a_score = None
-    #                 for a in self.available_actions_ids():
-    #                     if best_a is None or Q[(s, a)] > best_a_score:
-    #                         best_a = a
-    #                         best_a_score = Q[(s, a)]
-    #                 a = best_a
-    #
-    #             # Appliquer l'action et récupérer la récompense
-    #             prev_score = self.score()
-    #             self.step(a)
-    #             r = self.score() - prev_score
-    #
-    #             s_p = tuple(self._board)  # État suivant
-    #             aa_p = self.available_actions_ids()
-    #
-    #             # Calcul du target pour la mise à jour de Q
-    #             if self.is_game_over():
-    #                 target = r
-    #             else:
-    #                 best_a_p = None
-    #                 best_a_score_p = None
-    #                 for a_p in aa_p:
-    #                     if (s_p, a_p) not in Q:
-    #                         Q[(s_p, a_p)] = random.random()
-    #                     if best_a_p is None or Q[(s_p, a_p)] > best_a_score_p:
-    #                         best_a_p = a_p
-    #                         best_a_score_p = Q[(s_p, a_p)]
-    #                 target = r + gamma * best_a_score_p
-    #
-    #             # Mettre à jour la valeur de Q
-    #             updated_gain = (1.0 - alpha) * Q[(s, a)] + alpha * target
-    #             Q[(s, a)] = updated_gain
-    #
-    #             steps_count += 1
-    #
-    #         total_score += self.score()
-    #         total_steps += self.nombre_de_steps
-    #         if i % 10000 == 0 and i != 0:
-    #             mean_score.append(total_score / 10000)
-    #             num_of_steps.append(total_steps / 10000)
-    #             total_score = 0
-    #             total_steps = 0
-    #
-    #     # Construction de l'ensemble de toutes les actions par état
-    #     All_States_Actions = defaultdict(list)
-    #     for (s, a) in Q.keys():
-    #         if a not in All_States_Actions[s]:
-    #             All_States_Actions[s].append(a)
-    #
-    #     # Construire la politique optimale Pi à partir de Q
-    #     for s, a_Vec in All_States_Actions.items():
-    #         best_a = None
-    #         best_a_score = None
-    #         for action in a_Vec:
-    #             if best_a is None or Q[(s, action)] > best_a_score:
-    #                 best_a = action
-    #                 best_a_score = Q[(s, action)]
-    #         Pi[s] = best_a
-    #
-    #     return Pi, mean_score, num_of_steps
-
-
     def Q_learning_off_policy(self, gamma, epsilon, alpha, nb_iter, max_steps, eval_interval=10000):
         Q = defaultdict(lambda: random.random())
         mean_score = []
@@ -305,3 +216,52 @@ class TicTacToeVersusRandom():
             Pi[s] = best_a
 
         return Pi
+
+    def monte_carlo_random_rollout(self, nb_simulations_per_action):
+        best_action = None
+        best_mean_score = -float('inf')
+        possible_actions = self.available_actions_ids()
+        action_scores = {action: [] for action in possible_actions}
+
+        for action in possible_actions:
+            total_score = 0.0
+            for _ in range(nb_simulations_per_action):
+                # Create a copy of the environment
+                env_copy = TicTacToeVersusRandom()
+                env_copy.restore_from_state(self.state_description())
+
+                # Perform the action
+                env_copy.step(action)
+
+                # Perform a random rollout
+                score = self.random_rollout(env_copy)
+                action_scores[action].append(score)
+                total_score += score
+
+            mean_score = total_score / nb_simulations_per_action
+            # Add a small positive bias to encourage exploration
+            mean_score += 0.1 * len(action_scores[action])
+
+            if mean_score > best_mean_score:
+                best_mean_score = mean_score
+                best_action = action
+
+        return best_action
+
+    def random_rollout(self, env):
+        while not env.is_game_over():
+            random_action = random.choice(env.available_actions_ids())
+            env.step(random_action)
+        return env.score()
+
+    def launch_mcrr(self, number_of_replay):
+        self.reset()
+        while not self.is_game_over():
+            if self._player == 1:
+                random_action = random.choice(self.available_actions_ids())
+                self.step(random_action)
+            else:
+                best_action = self.monte_carlo_random_rollout(number_of_replay)
+                self.step(best_action)
+
+        return self.score(), self.nombre_de_steps
