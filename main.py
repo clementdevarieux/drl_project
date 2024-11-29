@@ -12,6 +12,7 @@ from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 from algorithmes.QLearningOffPolicy import Q_learning_off_policy
 import algorithmes.DeepQLearning as DeepQLearning
 import algorithmes.DoubleDeepQLearning as DoubleDeepQLearning
+import algorithmes.DoubleDeepQLearning_without_exp_replay as DoubleDeepQLearning_without_exp_replay
 import tensorflow as tf
 import keras
 from environnements.Farkle_v4 import Farkle_v4
@@ -27,16 +28,16 @@ def main():
     # # à confirmer si c'est correcte
     #
     #### PARAMS ######
-    num_episodes = 100_000
+    num_episodes = 20
     gamma = 0.999
     alpha = 0.001
     start_epsilon = 1.0
     end_epsilon = 0.00001
-    max_replay_size = 64
-    batch_size = 16
+    max_replay_size = 0
+    batch_size = 0
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
-    target_update_frequency = 2000
+    target_update_frequency = 10
     ##################
 
 
@@ -66,14 +67,14 @@ def main():
     #                                                     start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation))
 
     model, mean_score, mean_steps, simulation_score_history, step_history = (
-        DoubleDeepQLearning.doubleDeepQLearning(model,target_model, env, num_episodes, gamma, alpha,
-                                    start_epsilon, end_epsilon, max_replay_size, batch_size,
+        DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(model,target_model, env, num_episodes, gamma, alpha,
+                                    start_epsilon, end_epsilon,
                                     nbr_of_games_per_simulation, target_update_frequency))
 
     dt = datetime.datetime.now()
 
     ts = datetime.datetime.timestamp(dt)
-    save_name = f'farkle_DoubleDQN_{num_episodes}_{ts}'
+    save_name = f'farkle_DoubleDQN_no_EXPR_{num_episodes}_{ts}'
     #
     model.save(f'model/{save_name}')
     # # model.save(f'model/farkle_DQN_10001_halfway_plus_{num_episodes}')
