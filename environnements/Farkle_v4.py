@@ -38,7 +38,6 @@ def calculate_available_actions_mask(dice_count, dices_values_without_saved_dice
 
     return available_actions_mask
 
-
 class Farkle_v4:
 
     def __init__(self):
@@ -540,7 +539,6 @@ class Farkle_v4:
         state[-2] = self.player_1.score
         state[-1] = self.player_2.score
         return state
-
     def change_player_turn(self):
         if self.player_turn == 0:
             self.player_turn = 1
@@ -756,9 +754,31 @@ class Farkle_v4:
 
     def player_2_random_play(self):
         self.launch_dices()
-        # self.print_dices()
-        random_action = self.random_action(self.available_actions(self.which_player()))
+        random_action = self.random_action(self.available_actions(self.player_2))
         self.step(random_action)
+
+    def player_2_play_until_next_player(self):
+        while not self.is_game_over and self.player_turn == 1:
+            self.player_2_random_play()
+        self.dices_values.fill(0)
+        self.saved_dice.fill(0)
+        self.player_turn = 0
+
+    def play_game_training(self):
+        if self.player_turn == 1:
+            self.player_2_play_until_next_player()
+
+        self.launch_dices()
+        aa = self.available_actions(self.player_1)
+        if sum(aa) == 0.0:
+            self.end_turn_score(False, self.player_1)
+            self.player_2_play_until_next_player()
+            if self.is_game_over:
+                return
+            else:
+                return self.play_game_training()
+        return aa
+
 
     def print_dices(self):
         print("_-_-_-_-_-_-_-_-_-Farkle-_-_-_-_-_-_-_-_-_\n")
@@ -844,3 +864,4 @@ class Farkle_v4:
 
         print(f"Score du joueur 1: {self.player_1.score * 10000}")
         print(f"Score du joueur 2: {self.player_2.score * 10000}\n")
+

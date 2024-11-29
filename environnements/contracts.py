@@ -6,6 +6,9 @@ class Forward:
         raise "Unimplemented"
 
 class DeepDiscreteActionsEnv:
+    def __init__(self):
+        self.saved_dice = None
+
     def state_description(self) -> np.ndarray:
         raise "Unimplemented"
 
