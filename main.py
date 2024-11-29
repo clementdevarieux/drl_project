@@ -27,7 +27,7 @@ def main():
     # # à confirmer si c'est correcte
     #
     #### PARAMS ######
-    num_episodes = 20
+    num_episodes = 100_000
     gamma = 0.999
     alpha = 0.001
     start_epsilon = 1.0
@@ -36,12 +36,13 @@ def main():
     batch_size = 16
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
-    target_update_frequency = 10
+    target_update_frequency = 2000
     ##################
 
 
     params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
-              "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation}
+              "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
+              "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency}
     #
     model = keras.Sequential([
         keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
@@ -69,7 +70,10 @@ def main():
                                     start_epsilon, end_epsilon, max_replay_size, batch_size,
                                     nbr_of_games_per_simulation, target_update_frequency))
 
-    save_name = f'farkle_DQN_from_1000_to_{num_episodes}_{datetime.datetime.now()}'
+    dt = datetime.datetime.now()
+
+    ts = datetime.datetime.timestamp(dt)
+    save_name = f'farkle_DoubleDQN_{num_episodes}_{ts}'
     #
     model.save(f'model/{save_name}')
     # # model.save(f'model/farkle_DQN_10001_halfway_plus_{num_episodes}')
@@ -77,7 +81,7 @@ def main():
     dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
                      , "step_history": step_history ,"params": params}
 
-    with open(f"results/Farkle/DQN/{save_name}.txt", "w") as f:
+    with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
         f.write(str(dict_to_write))
 
 
@@ -150,23 +154,23 @@ def main():
     # print(mean_score)
     # print(mean_num_steps)
 
-    score_after = []
-    steps_after = []
-    number_of_simulations = []
-    number_of_sims = 10
-    for _ in tqdm(range(101)):
-        env = TicTacToeVersusRandom()
-        score, steps = env.launch_mcrr(number_of_sims)
-        print(score, steps, number_of_sims)
-        score_after.append(score)
-        steps_after.append(steps)
-        number_of_simulations.append(number_of_sims)
-        number_of_sims += 10
-
-    dict_to_write = {"score": score_after, "num_of_steps": steps_after, "number_of_simulations": number_of_simulations}
-
-    with open("results/TicTacToe/MCRR/tictactoe_mcrr_100_games.txt", "w") as f:
-        f.write(str(dict_to_write))
+    # score_after = []
+    # steps_after = []
+    # number_of_simulations = []
+    # number_of_sims = 10
+    # for _ in tqdm(range(101)):
+    #     env = TicTacToeVersusRandom()
+    #     score, steps = env.launch_mcrr(number_of_sims)
+    #     print(score, steps, number_of_sims)
+    #     score_after.append(score)
+    #     steps_after.append(steps)
+    #     number_of_simulations.append(number_of_sims)
+    #     number_of_sims += 10
+    #
+    # dict_to_write = {"score": score_after, "num_of_steps": steps_after, "number_of_simulations": number_of_simulations}
+    #
+    # with open("results/TicTacToe/MCRR/tictactoe_mcrr_100_games.txt", "w") as f:
+    #     f.write(str(dict_to_write))
 
 for i in range(1):
     # cProfile.run("main()")
