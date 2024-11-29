@@ -47,15 +47,12 @@ def random_rollout(env):
 def launch_mcrr():
     env = Farkle_v4()
     env.reset()
-    env.launch_dices()
 
     while not env.is_game_over:
+        env.launch_dices()
         best_action = monte_carlo_random_rollout(env, 100)
         env.step(best_action)
 
-    # print("score final du joueur 1:", env.player_1.score)
-    # print("score final du joueur 2:", env.player_2.score)
-    # print("_______________________________________________________")
 
     return env.reward
 

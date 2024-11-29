@@ -1,6 +1,6 @@
+from environnements.TicTacToe import TicTacToeVersusRandom
 import datetime
 
-from environnements.TicTacToe import TicTacToeVersusRandom
 # from environnements.Farkle_Gui import FarkleGui
 from environnements.GridWorld import GridWorld
 import numpy as np
@@ -135,58 +135,38 @@ def main():
     # print("available actions: ", aa)
     # print("random_action", env.random_action(aa))
 
-
-    # for _ in tqdm(range(1000)):
-    #     env.reset()
-    #     dice_launched = False
-    #     while not env.is_game_over:
-    #         if env.player_1.potential_score == 0.0 and not dice_launched:
-    #             aa = env.play_game_training() ## lance les dés
-    #         else:
-    #             # env.launch_dices()
-    #             dice_launched = False
-    #             aa = env.available_actions(env.player_1)
-    #
-    #         if env.is_game_over:
-    #             break
-    #
-    #         a = env.random_action(aa)
-    #         env.step(a)
-            # if env.player_turn == 0:
-            #     env.launch_dices()
-            # if env.player_turn == 1:
-            #     env.player_2_play_until_next_player()
-            #     env.launch_dices()
-            #     aa = env.available_actions(env.player_1)
-            #     dice_launched = True
-            # else:
-            #     env.launch_dices()
-            #     aa = env.available_actions(env.player_1)
-            #     if sum(aa) == 0.0:
-            #         env.end_turn_score(False, env.player_1)
-            #         env.player_2_play_until_next_player()
-            #         if env.is_game_over:
-            #             break
-            #         env.launch_dices()
-            #         aa = env.available_actions(env.player_1)
-            #         dice_launched = True
-        #     aa = env.play_game_training() ## lance les dés
-        #     dice_launched = True
-        #
-        # total_score += env.reward
-        # if env.reward == -1.0:
-        #     total_loss += 1
-        # else:
-        #     total_win += 1
-        # total_steps += env.number_of_steps
-
-    # print(env.launched_dices/1000)
-    # mean_score = total_score / 1000
-    # print(f"total_loss: {total_loss}")
-    # print(f"total_wins: {total_win}")
-    # print(f"total_steps: {total_steps/1000}")
+    # env = Farkle_v4()
+    # Pi, mean_score, num_of_steps = env.Q_learning_off_policy(0.999, 0.1, 0.1, 100000, 100_000)
+    # # params = {"gamma": 0.99, "epsilon": 0.05, "alpha": 0.01, "nb_iter": 100000, "max_steps": 1_000_000}
     # print(mean_score)
+    # print(num_of_steps)
+    # print(Pi)
+    # dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": params}
+    #
+    # with open("results/Farkle/Q_learning/farkle_qlearning_100000.txt", "w") as f:
+    #     f.write(str(dict_to_write))
 
+    # mean_score, mean_num_steps = env.run_game_Pi(Pi, 1)
+    # print(mean_score)
+    # print(mean_num_steps)
+
+    score_after = []
+    steps_after = []
+    number_of_simulations = []
+    number_of_sims = 10
+    for _ in tqdm(range(101)):
+        env = TicTacToeVersusRandom()
+        score, steps = env.launch_mcrr(number_of_sims)
+        print(score, steps, number_of_sims)
+        score_after.append(score)
+        steps_after.append(steps)
+        number_of_simulations.append(number_of_sims)
+        number_of_sims += 10
+
+    dict_to_write = {"score": score_after, "num_of_steps": steps_after, "number_of_simulations": number_of_simulations}
+
+    with open("results/TicTacToe/MCRR/tictactoe_mcrr_100_games.txt", "w") as f:
+        f.write(str(dict_to_write))
 
 for i in range(1):
     # cProfile.run("main()")

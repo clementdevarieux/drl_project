@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+from tqdm import tqdm
 
 class GridWorld:
     def __init__(self):
@@ -138,6 +138,9 @@ class GridWorld:
         one_hot[self.agent_pos] = 1.0
         return one_hot
 
+    def restore_from_state(self, state):
+        self.agent_pos = state.index(1.0)
+
     def is_game_over(self):
         return self.agent_pos in self.T
 
@@ -247,3 +250,53 @@ class GridWorld:
             self.display()
             print("\n")
             step += 1
+
+    def monte_carlo_random_rollout(self, nb_simulations_per_action):
+        best_action = None
+        best_mean_score = -float('inf')
+        possible_actions = self.available_actions()
+        action_scores = {action: [] for action in possible_actions}
+
+        for action in possible_actions:
+            total_score = 0.0
+            for _ in tqdm(range(nb_simulations_per_action)):
+                # Create a copy of the environment
+                env_copy = GridWorld()
+                env_copy.restore_from_state(self.state_description())
+
+                # Perform the action
+                env_copy.step(action)
+
+                # Perform a random rollout
+                score = self.random_rollout(env_copy)
+                action_scores[action].append(score)
+                total_score += score
+
+            mean_score = total_score / nb_simulations_per_action
+
+            if mean_score > best_mean_score:
+                best_mean_score = mean_score
+                best_action = action
+
+            print(f"Action {action}: {action_scores[action]}")
+            print(f"Mean score: {mean_score}")
+
+        return best_action
+
+    def random_rollout(self, env):
+        while not env.is_game_over():
+            action = random.choice(env.available_actions())
+            env.step(action)
+        return env.score()
+
+    def launch_mcrr(self):
+        self.reset()
+        step = 0
+        while not self.is_game_over():
+            best_action = self.monte_carlo_random_rollout(1000)
+            if best_action is None:
+                best_action = random.choice(self.available_actions())
+            self.step(best_action)
+            step += 1
+
+        return self.score(), step
