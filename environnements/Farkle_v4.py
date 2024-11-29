@@ -216,7 +216,7 @@ class Farkle_v4:
             (0, 0, 0, 0, 0, 0): [0, 64],
             (1, 0, 0, 0, 0, 0): [1, 65],
             (0, 1, 0, 0, 0, 0): [2, 66],
-            (1, 1, 0, 0, 0, 0): [1, 2, 3, 65, 66, 67],
+            (1, 1, 0, 0, 0, 0): [1, 2, 3, 65, 66, 67], # [1, 5, 4, 6, 3, 3]
             (0, 0, 1, 0, 0, 0): [4, 68],
             (1, 0, 1, 0, 0, 0): [1, 4, 5, 65, 68, 69],
             (0, 1, 1, 0, 0, 0): [2, 4, 6, 66, 68, 70],
@@ -301,8 +301,8 @@ class Farkle_v4:
             (2, 2, 0, 1, 2, 0): [8, 72, 19, 83, 27, 91],
             (2, 2, 0, 2, 1, 0): [16, 80, 11, 75, 27, 91],
             (2, 2, 0, 2, 2, 0): [27, 91],
-            (0, 0, 2, 2, 2, 0): [28, 92],
-            (1, 0, 2, 2, 2, 0): [1, 65, 28, 92, 29, 93],
+            (0, 0, 2, 2, 2, 0): [28, 92], # [2, 3, 4, 4, 4, 6]
+            (1, 0, 2, 2, 2, 0): [1, 65, 28, 92, 29, 93], # [5, 3, 4, 4, 4, 6]
             (2, 0, 1, 2, 2, 0): [4, 68, 25, 89, 29, 93],
             (2, 0, 2, 1, 2, 0): [8, 72, 21, 85, 29, 93],
             (2, 0, 2, 2, 1, 0): [16, 80, 13, 77, 29, 93],
@@ -574,7 +574,7 @@ class Farkle_v4:
         print(self.actions_dict[action_key])
 
     def update_potential_score(self, action_key, player: Player_v4):
-        dice_count = np.zeros(6)
+        dice_count = np.zeros(6) # [0, 0, 0, 0, 0, 0] // [1, 1, 4, 6, 2, 3] // [2, 1, 1, 1, 0, 1]
 
         # action ==> 0 si on garde pas le dé
         # ==> 1 si on le garde dans le cadre de l'attribution de points
@@ -678,6 +678,9 @@ class Farkle_v4:
             return True
 
     def available_actions(self, player: Player_v4):
+        # saved_dice = [0, 1, 0, 0, 1, 0]
+        # dices_values = [1, 1, 3, 5, 5, 2]
+        # available_actions_mask = [1, 0, 0, 1, 0, 0]
         dice_count = self.available_dices_value_count()
         self.check_auto_reroll(player, dice_count)
         if self.is_dices_reset:
@@ -715,7 +718,7 @@ class Farkle_v4:
 
         self.update_potential_score(action_key, player)
 
-        if self.actions_dict[action_key][6] == 1:
+        if action_key > 64:
             self.end_turn_score(True, player)
             if self.is_game_over:
                 return

@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import random
 from collections import defaultdict
@@ -7,17 +8,38 @@ NUM_STATE_FEATURES = 27
 NUM_ACTIONS = 9
 
 
+class Node_TicTacToe:
+    def __init__(self, state, parent=None):
+        self.state = state  # État du jeu
+        self.parent = parent  # Nœud parent
+        self.children = []  # Liste des enfants
+        self.visits = 0  # Nombre de visites
+        self.reward = 0.0  # Récompense cumulative
+
+    def is_fully_expanded(self):
+        return len(self.children) == len(self.state['actions'])
+
+    def best_child(self, exploration_weight):
+        return max(self.children, key=lambda c: c.uct_score(exploration_weight))
+
+    def uct_score(self, exploration_weight):
+        if self.visits == 0:
+            return float('inf')
+        exploitation = self.reward / self.visits
+        exploration = exploration_weight * math.sqrt(math.log(self.parent.visits) / self.visits)
+        return exploitation + exploration
+
 class TicTacToeVersusRandom():
     def __init__(self):
         self._board = np.zeros((NUM_ACTIONS,))
-        self._player = 0
+        self.player = 0
         self._is_game_over = False
         self._score = 0.0
         self.nombre_de_steps = 0
 
     def reset(self):
         self._board = np.zeros((NUM_ACTIONS,))
-        self._player = 0
+        self.player = 0
         self._is_game_over = False
         self._score = 0.0
         self.nombre_de_steps = 0
@@ -60,7 +82,7 @@ class TicTacToeVersusRandom():
         if self._board[action] != 0:
             raise ValueError("Invalid move, cell is already occupied.")
         self.nombre_de_steps += 1
-        self._board[action] = self._player + 1
+        self._board[action] = self.player + 1
 
         row = action // 3
         col = action % 3
@@ -73,7 +95,7 @@ class TicTacToeVersusRandom():
                 self._board[2] == self._board[4] and self._board[2] == self._board[6] and self._board[2] == self._board[
             action]:
             self._is_game_over = True
-            self._score = 1.0 if self._player == 0 else -1.0
+            self._score = 1.0 if self.player == 0 else -1.0
             return
 
         # Check for draw
@@ -82,13 +104,13 @@ class TicTacToeVersusRandom():
             self._score = 0.0
             return
 
-        if self._player == 0:
-            self._player = 1
+        if self.player == 0:
+            self.player = 1
 
             random_action = np.random.choice(self.available_actions_ids())
             self.step(random_action)
         else:
-            self._player = 0
+            self.player = 0
 
     def is_game_over(self) -> bool:
         return self._is_game_over
@@ -109,7 +131,7 @@ class TicTacToeVersusRandom():
                     pretty_str += "O"
             pretty_str += "\n"
         pretty_str += f'Score: {self._score}\n'
-        pretty_str += f'Player {self._player} to play\n'
+        pretty_str += f'Player {self.player} to play\n'
         pretty_str += f'Game Over: {self._is_game_over}\n'
         return pretty_str
 
@@ -257,7 +279,7 @@ class TicTacToeVersusRandom():
     def launch_mcrr(self, number_of_replay):
         self.reset()
         while not self.is_game_over():
-            if self._player == 1:
+            if self.player == 1:
                 random_action = random.choice(self.available_actions_ids())
                 self.step(random_action)
             else:
@@ -265,3 +287,57 @@ class TicTacToeVersusRandom():
                 self.step(best_action)
 
         return self.score(), self.nombre_de_steps
+
+    def reset_node(self):
+        self.root_node = None
+
+    def mcts_uct(self, root_state, n_iterations, exploration_weight=math.sqrt(2)):
+        if self.root_node is None:
+            self.root_node = Node_TicTacToe(root_state)
+        root = self.root_node
+
+        for _ in range(n_iterations):
+            node = root
+            self.restore_from_state(root_state['state'])
+
+            # Étape 1 : Sélection
+            while not node.state['is_terminal'] and node.is_fully_expanded():
+                node = node.best_child(exploration_weight)
+                self.restore_from_state(node.state['state'])
+
+            # Étape 2 : Expansion
+            if not node.state['is_terminal']:
+                action = node.state['actions'][len(node.children)]
+                next_state = self.simulate_action(action)
+                child_node = Node_TicTacToe(next_state, parent=node)
+                node.children.append(child_node)
+                node = child_node
+
+            # Étape 3 : Simulation
+            reward = self.simulate_random_playout()
+
+            # Étape 4 : Backpropagation
+            while node is not None:
+                node.visits += 1
+                node.reward += reward
+                node = node.parent
+
+        return root.best_child(0).state['action']
+
+    def simulate_action(self, action):
+        self.step(action)
+        return {
+            'state': self.state_description(),
+            'actions': self.available_actions_ids().tolist(),  # Assurez-vous que les actions sont une liste d'entiers
+            'is_terminal': self.is_game_over(),
+            'action': action  # Ajoutez l'action ici pour la retourner dans mcts_uct
+        }
+
+    def simulate_random_playout(self):
+        while not self.is_game_over():
+            available_actions = self.available_actions_ids()
+            if len(available_actions) == 0:
+                break
+            random_action = np.random.choice(available_actions)
+            self.step(random_action)
+        return self.score()

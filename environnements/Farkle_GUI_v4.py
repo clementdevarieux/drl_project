@@ -870,7 +870,10 @@ class Farkle_GUI_v4:
 
             print(f"available actions:")
             for action in aa:
-                print(f"{action}: {self.actions_dict[action]}")
+                if self.actions_dict[action][6] == 0:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et relancer les dés")
+                else:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et finir le tour")
 
             while True:
                 var = input("Choose one action and press Enter: ")
