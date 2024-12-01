@@ -28,23 +28,23 @@ def main():
     # # à confirmer si c'est correcte
     #
     #### PARAMS ######
-    num_episodes = 20
-    gamma = 0.999
+    num_episodes = 30000
+    gamma = 0.95
     alpha = 0.001
     start_epsilon = 1.0
     end_epsilon = 0.00001
-    max_replay_size = 0
-    batch_size = 0
+    max_replay_size = 64
+    batch_size = 16
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
-    target_update_frequency = 10
+    target_update_frequency = 0
     ##################
 
 
     params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
               "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
               "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency}
-    #
+
     model = keras.Sequential([
         keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
         keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
@@ -53,28 +53,28 @@ def main():
     ])
 
 
-    target_model = keras.Sequential([
-        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    ])
+    # target_model = keras.Sequential([
+    #     keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+    #     keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    # ])
 
     # model = tf.keras.models.load_model(f'model/farkle_DQN_1001_2024-11-29 191306.630389', custom_objects=None, compile=True, safe_mode=True)
     #
-    # model, mean_score, mean_steps, simulation_score_history,step_history = (
-    #     DeepQLearning.deepQLearning(model, env, num_episodes, gamma, alpha,
-    #                                                     start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation))
+    model, mean_score, mean_steps, simulation_score_history,step_history = (
+        DeepQLearning.deepQLearning(model, env, num_episodes, gamma, alpha,
+                                                        start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation))
 
-    model, mean_score, mean_steps, simulation_score_history, step_history = (
-        DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(model,target_model, env, num_episodes, gamma, alpha,
-                                    start_epsilon, end_epsilon,
-                                    nbr_of_games_per_simulation, target_update_frequency))
+    # model, mean_score, mean_steps, simulation_score_history, step_history = (
+    #     DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(model,target_model, env, num_episodes, gamma, alpha,
+    #                                 start_epsilon, end_epsilon,
+    #                                 nbr_of_games_per_simulation, target_update_frequency))
 
     dt = datetime.datetime.now()
 
     ts = datetime.datetime.timestamp(dt)
-    save_name = f'farkle_DoubleDQN_no_EXPR_{num_episodes}_{ts}'
+    save_name = f'farkle_DQN_{num_episodes}_{ts}'
     #
     model.save(f'model/{save_name}')
     # # model.save(f'model/farkle_DQN_10001_halfway_plus_{num_episodes}')
@@ -82,7 +82,7 @@ def main():
     dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
                      , "step_history": step_history ,"params": params}
 
-    with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
+    with open(f"results/Farkle/DQN/{save_name}.txt", "w") as f:
         f.write(str(dict_to_write))
 
 
