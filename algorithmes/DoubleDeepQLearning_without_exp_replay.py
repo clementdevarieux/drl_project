@@ -87,7 +87,7 @@ def DoubleDeepQLearning_without_exp_replay(
         progress = ep_id / num_episodes
         decayed_epsilon = (1.0 - progress) * start_epsilon + progress * end_epsilon
 
-        if ep_id % 25_000 == 0 and ep_id != 0:
+        if ep_id % 5000 == 0 and ep_id != 0:
             dt = datetime.datetime.now()
             ts = datetime.datetime.timestamp(dt)
             model.save(f'model/DoubleDQN_{ep_id}_{ts}')
@@ -95,7 +95,7 @@ def DoubleDeepQLearning_without_exp_replay(
         if ep_id % target_update_frequency == 0 and ep_id != 0:
             target_model.set_weights(model.get_weights())
 
-        if ep_id % 19 == 0 and ep_id != 0:
+        if ep_id % 1000 == 0 and ep_id != 0:
             print(f"Mean Score: {total_score / ep_id}")
             print(f"Mean steps: {total_steps / ep_id}")
             simulation = play_number_of_games(nbr_of_games_per_simulation, model, env)
