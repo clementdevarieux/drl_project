@@ -8,6 +8,7 @@ NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
 NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 3
 
+# Player c'est la classe qui permet de différencer les deux players, player_1 c'est nous et player_2 c'est l'adversaire
 class Player_v4:
 
     def __init__(self, player_id):
@@ -48,12 +49,16 @@ class Farkle_v4:
         self.saved_dice = np.zeros(NUM_DICE, dtype=int)
         self.player_1 = Player_v4(0)
         self.player_2 = Player_v4(1)
+        # player_turn c'est pour déterminer qui est entrain de jouer, qui commence. 0 c'est pour nous, 1 c'est pour le player
         self.player_turn = random.randint(0, 1)
         self.is_game_over = False
+        # le reward il passe à 1 si on gagne la partie et à -1 si on perd
         self.reward = 0.0
         self.is_dices_reset = False
+        # number of steps pour déterminer en combien de steps on a fini la partie
         self.number_of_steps = 0
         self.scoring_rules = {
+            # J'ai une fois le dé avec la valeur 1 = ça me rapport 100 points
             (1, 1): 0.01,
             (1, 2): 0.02,
             (1, 3): 0.1,
@@ -65,6 +70,7 @@ class Farkle_v4:
             (2, 5): 0.08,
             (2, 6): 0.16,
             (3, 3): 0.03,
+            # si j'ai 4 fois le dé avec la valeur 3 = 600 points
             (3, 4): 0.06,
             (3, 5): 0.12,
             (3, 6): 0.24,
@@ -85,6 +91,8 @@ class Farkle_v4:
         }
         self.actions_dict = {
             0: [0, 0, 0, 0, 0, 0, 0],
+            # donc pour l'action 1 = on prend le dé à l'indice 0 et prends pas les autres, le dernier chiffre 0 = continue de jouer ou 1 on arrête de jouer
+            # on récupère ce qu'on veut garder et c'est l'adversaire qui joue
             1: [1, 0, 0, 0, 0, 0, 0],
             2: [0, 1, 0, 0, 0, 0, 0],
             3: [1, 1, 0, 0, 0, 0, 0],
@@ -162,6 +170,7 @@ class Farkle_v4:
             75: [1, 1, 0, 1, 0, 0, 1],
             76: [0, 0, 1, 1, 0, 0, 1],
             77: [1, 0, 1, 1, 0, 0, 1],
+            # Ici par exemple, on garde les 3 dé avec les 1 et on arrête de jouer et c'est à l'adversaire
             78: [0, 1, 1, 1, 0, 0, 1],
             79: [1, 1, 1, 1, 0, 0, 1],
             80: [0, 0, 0, 0, 1, 0, 1],
@@ -216,7 +225,8 @@ class Farkle_v4:
             (0, 0, 0, 0, 0, 0): [0, 64],
             (1, 0, 0, 0, 0, 0): [1, 65],
             (0, 1, 0, 0, 0, 0): [2, 66],
-            (1, 1, 0, 0, 0, 0): [1, 2, 3, 65, 66, 67],
+            # Je prends le premier dé je m'arrête, je prends le deuxième dé et je relance et pareil pour le deuxième
+            (1, 1, 0, 0, 0, 0): [1, 2, 3, 65, 66, 67],#Ici par exemple si j'ai cette combinaison de dé je peux effectuer toutes ces actions [1, 2, 3, 65, 66, 67] qui sont au dessus
             (0, 0, 1, 0, 0, 0): [4, 68],
             (1, 0, 1, 0, 0, 0): [1, 4, 5, 65, 68, 69],
             (0, 1, 1, 0, 0, 0): [2, 4, 6, 66, 68, 70],
@@ -301,8 +311,8 @@ class Farkle_v4:
             (2, 2, 0, 1, 2, 0): [8, 72, 19, 83, 27, 91],
             (2, 2, 0, 2, 1, 0): [16, 80, 11, 75, 27, 91],
             (2, 2, 0, 2, 2, 0): [27, 91],
-            (0, 0, 2, 2, 2, 0): [28, 92],
-            (1, 0, 2, 2, 2, 0): [1, 65, 28, 92, 29, 93],
+            (0, 0, 2, 2, 2, 0): [28, 92],#Donc ici si le lancé nous donne ces d2 là = [2,3,4,4,4,6] on est obligé de prendre les 3 dé à 4 donc quand il ya des deux c'est d2 qui sont indissociable
+            (1, 0, 2, 2, 2, 0): [1, 65, 28, 92, 29, 93],#ici par exemple [5,3,4,4,4,6] on peut prendre soit le premier, soit les 3 dé à 4 soit tous parce que c'est une combinaison
             (2, 0, 1, 2, 2, 0): [4, 68, 25, 89, 29, 93],
             (2, 0, 2, 1, 2, 0): [8, 72, 21, 85, 29, 93],
             (2, 0, 2, 2, 1, 0): [16, 80, 13, 77, 29, 93],
@@ -522,21 +532,25 @@ class Farkle_v4:
         self.reward = 0.0
         self.number_of_steps = 0
 
+    # On lance les dé qui ne sont pas sauvegardés
     def launch_dices(self):
         for i in range(NUM_DICE):
             if self.saved_dice[i] == 0:
                 self.dices_values[i] = random.randint(1, 6)
 
-
+    # on reset les dices quand c'est à l'autre joueur de joué
     def reset_saved_dices(self):
         self.dices_values.fill(0)
         self.saved_dice.fill(0)
 
+    # ça c'est l'état notre S,
     def state_description(self):
         state = np.zeros(NUM_STATE_FEATURES)
         for i in range(NUM_DICE):
+            # one hot de la valeur des dés
             state[i * 6 + self.dices_values[i] - 1] = 1.0
         for i in range(NUM_DICE):
+            # one hot du dé s'il est save ou pas
             state[NUM_DICE_VALUE_ONE_HOT + 2 * i + self.saved_dice[i]] = 1.0
         state[-3] = self.player_1.potential_score
         state[-2] = self.player_1.score
@@ -548,6 +562,8 @@ class Farkle_v4:
         else:
             self.player_turn = 0
 
+    # la règle de fin de score, ça prend un booléen et le joueur en question
+    # si on décide volontairement de s'arrêter, ça donne le score
     def end_turn_score(self, keep: bool, player: Player_v4):
         if keep:
             player.add_score()
@@ -563,6 +579,7 @@ class Farkle_v4:
         self.reset_saved_dices()
         self.change_player_turn()
 
+    # on met à jour les dés sauvegarder en fonction de l'action qu'on a prise
     def update_saved_dice(self, action_key):
         for i in range(NUM_DICE):
             if self.actions_dict[action_key][i] == 1:
@@ -572,6 +589,7 @@ class Farkle_v4:
         print(action_key)
         print(self.actions_dict[action_key])
 
+    # ça prend une action key
     def update_potential_score(self, action_key, player: Player_v4):
         dice_count = np.zeros(6)
 
@@ -647,6 +665,7 @@ class Farkle_v4:
             self.launch_dices()
             self.is_dices_reset = True
 
+    # on fait passer à 0 les dés qu'on a sauvegardé
     def dices_values_without_saved_dices(self):
         dices_values_without_saved_dices = []
         for i in range(NUM_DICE):
@@ -663,6 +682,7 @@ class Farkle_v4:
         self.check_three_pairs(player, dice_count)
         self.check_trois_identiques_twice(player, dice_count)
 
+    # quand on valide tous les dé et qu'on relance
     def handle_dice_reset_and_reroll(self, player, dice_count, available_actions_mask):
         # print("Entering handle_dice_reset_and_reroll")
         available_actions_without_zeros = [int(x) for x in available_actions_mask if x != 0]
@@ -676,10 +696,11 @@ class Farkle_v4:
             self.launch_dices()
             return True
 
+    # on prend le player qui est entrain de jouer
     def available_actions(self, player: Player_v4):
-        # saved_dice = [0, 1, 0, 0, 1, 0]
-        # dices_values = [1, 1, 3, 5, 5, 2]
-        # available_actions_mask = [1, 0, 0, 1, 0, 0]
+        # si saved_dice = [0, 1, 0, 0, 1, 0]
+        # et dices_values = [1, 1, 3, 5, 5, 2]
+        # available_actions_mask = [1, 0, 0, 1, 0, 0] donc ici c'est l'id de available_action_keys_from_action au dessus que cette fonction retourne
         dice_count = self.available_dices_value_count()
         self.check_auto_reroll(player, dice_count)
         if self.is_dices_reset:
@@ -699,15 +720,17 @@ class Farkle_v4:
         else:
             return self.player_2
 
+    # ici on prend au hasard dans x action key que nous retourne (self.available_action_keys_from_action[tuple(available_actions)])
     def random_action(self, available_actions):
         return random.choice(self.available_action_keys_from_action[tuple(available_actions)])
 
+    # Cette fonction prend un clé d'action
     def step(self, action_key):
         player = self.which_player()
         self.number_of_steps += 1
         if self.is_game_over:
             raise Exception("Game is over, please reset the game")
-
+        # ça ça veut dire quand il ya aucune combinaison possible
         if action_key in [0, 64]:
             self.end_turn_score(False, player)
             return
@@ -732,6 +755,7 @@ class Farkle_v4:
             random_action = self.random_action(aa)
             self.step(random_action)
 
+    # ça réinitialise tous l'environnement à partir de l'état courant
     def restore_from_state(self, state: np.ndarray):
         for i in range(NUM_DICE):
             dice_one_hot = state[i * 6:(i + 1) * 6]
