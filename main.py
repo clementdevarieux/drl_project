@@ -87,7 +87,7 @@ def main():
 
     ######### GAME VS MODEL OR RANDOM #########
 
-    # model = tf.keras.models.load_model(f'model/farkle_DQN_30000_1733041323.107115', custom_objects=None, compile=True, safe_mode=True)
+    # model = tf.keras.models.load_model(f'model/Farkle_DDQN_PER_100_1733176026.88911', custom_objects=None, compile=True, safe_mode=True)
     #
     # # to play vs model
     # run_GUI(True, model)
@@ -108,18 +108,18 @@ def main():
     env = Farkle_v4()
     output_nbr = 127
 
-    num_episodes = 100
+    num_episodes = 3000
     gamma = 0.999
     alpha = 0.001
     start_epsilon = 1.0
     end_epsilon = 0.00001
-    max_replay_size = 1000
+    max_replay_size = 10000
     batch_size = 32
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
-    target_update_frequency = 10
-    alpha_priority = 0.5
-    beta_start = 0.5
+    target_update_frequency = 50
+    alpha_priority = 0.0
+    beta_start = 0.0
 
     ##################
 
@@ -132,18 +132,18 @@ def main():
 
     dt = datetime.datetime.now()
     ts = datetime.datetime.timestamp(dt)
-    save_name = f'Farkle_DDQN_PER_{num_episodes}_{ts}'
+    save_name = f'Farkle_DDQN_PER_100_to_3000_{num_episodes}_{ts}'
 
     ################################################
 
     ################## DQN ##################
 
-    # model = generate_model(output_nbr)
-    #
-    # model, mean_score, mean_steps, simulation_score_history, step_history = (
-    #     DeepQLearning.deepQLearning(
-    #         model, env, num_episodes, gamma, alpha,start_epsilon, end_epsilon,
-    #         max_replay_size, batch_size, nbr_of_games_per_simulation, save_name))
+    model = generate_model(output_nbr)
+
+    model, mean_score, mean_steps, simulation_score_history, step_history = (
+        DeepQLearning.deepQLearning(
+            model, env, num_episodes, gamma, alpha,start_epsilon, end_epsilon,
+            max_replay_size, batch_size, nbr_of_games_per_simulation, save_name))
 
     ################################################
 
@@ -173,14 +173,14 @@ def main():
 
     ################## DDQN PER ##################
 
-    model = generate_model(output_nbr)
-    target_model = generate_model(output_nbr)
-
-    model, mean_score, mean_steps, simulation_score_history, step_history = (
-        DoubleDeepQLearning_prioritized_expreplay.doubleDeepQLearning(
-            model, target_model, env, num_episodes, gamma, alpha,
-            start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation, target_update_frequency,
-            alpha_priority, beta_start, save_name))
+    # model = generate_model(output_nbr)
+    # target_model = generate_model(output_nbr)
+    #
+    # model, mean_score, mean_steps, simulation_score_history, step_history = (
+    #     DoubleDeepQLearning_prioritized_expreplay.doubleDeepQLearning(
+    #         model, target_model, env, num_episodes, gamma, alpha,
+    #         start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation, target_update_frequency,
+    #         alpha_priority, beta_start, save_name))
 
     ################################################
 
