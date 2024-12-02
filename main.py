@@ -251,5 +251,24 @@ def main():
 
     ####################################
 
+    ############# RANDOM VS RANDOM ############
+
+    # score_after = []
+    # steps_after = []
+    # number_of_simulations = []
+    # for _ in tqdm(range(1000)):
+    #     env = Farkle()
+    #     score, steps = env.play_game_random()
+    #     print(score, steps, number_of_sims)
+    #     score_after.append(score)
+    #     steps_after.append(steps)
+    #
+    # dict_to_write = {"score": score_after, "num_of_steps": steps_after}
+    #
+    # with open("results/Farkle/Random/farkle_random_1000.txt", "w") as f:
+    #     f.write(str(dict_to_write))
+
+    ####################################
+
 main()
 
