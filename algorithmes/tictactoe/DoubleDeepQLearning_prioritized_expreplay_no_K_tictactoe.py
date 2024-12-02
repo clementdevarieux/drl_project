@@ -35,10 +35,8 @@ def batch_gradient_step(model, target_model, transitions, gamma, optimizer, w_j)
             yj = r + gamma * max_q_s_prime
             q_s_a = model(tf.expand_dims(s, 0))[0][a]
 
-            w_j_i = tf.cast(w_j[idx], dtype=tf.float32)
-
-            losses.append(w_j_i * tf.square(q_s_a - yj))
-        loss = tf.reduce_mean(losses)
+            losses.append(tf.square(q_s_a - yj))
+        loss = tf.reduce_mean(w_j * losses)
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
@@ -132,7 +130,7 @@ def doubleDeepQLearning(
             target_model.set_weights(model.get_weights())
 
 
-        if (ep_id % 25 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
+        if (ep_id % 200 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
             print(f"Mean Score: {total_score / ep_id}")
             print(f"Mean steps: {total_steps / ep_id}")
             simulation = play_number_of_games(nbr_of_games_per_simulation, model, env)
@@ -200,7 +198,7 @@ def doubleDeepQLearning(
                 for idx, td_error in enumerate(td_errors):
                     priorities[indices[idx]] = abs(td_error.numpy()) + 0.0001
 
-            beta = min(1.0, beta + beta_increment)
+        beta = min(1.0, beta + beta_increment)
 
 
         total_score += env.score()
