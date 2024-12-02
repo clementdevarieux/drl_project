@@ -32,75 +32,159 @@ def run_GUI(isWithModel: bool, model = None):
     else:
         env.run_game_GUI()
 
+def generate_model(output_nbr):
+    return keras.Sequential([
+        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    ])
+
+@tf.function
+def model_predict(model, s):
+    return model(tf.expand_dims(s, 0))[0]
+
+
+def greedy_action(
+        q_s: tf.Tensor,
+        mask: tf.Tensor
+) -> int:
+    inverted_mask = tf.constant(-1.0) * mask + tf.constant(1.0)
+    masked_q_s = q_s * mask + tf.float32.min * inverted_mask
+    return int(tf.argmax(masked_q_s, axis=0))
+
+def play_number_of_games(number_of_games, model, env):
+    total_score = 0.0
+    for _ in tqdm(range(number_of_games)):
+        env.reset()
+        while not env.is_game_over:
+            if env.player_1.potential_score == 0.0:
+                aa = env.play_game_training()
+            else:
+                env.launch_dices()
+                aa = env.available_actions(env.player_1)
+
+            if env.is_game_over:
+                break
+
+            s = env.state_description()
+            s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
+
+            mask = env.action_mask(aa)
+            mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
+
+            q_s = model_predict(model, s_tensor)
+            a = greedy_action(q_s, mask_tensor)
+
+            env.step(a)
+        total_score += env.reward
+
+    mean_score = total_score / number_of_games
+    return mean_score
+
+
 def main():
+
+    ######### GAME VS MODEL OR RANDOM #########
+
     # model = tf.keras.models.load_model(f'model/farkle_DQN_30000_1733041323.107115', custom_objects=None, compile=True, safe_mode=True)
     #
+    # # to play vs model
     # run_GUI(True, model)
+    #
+    # # to play vs random
     # run_GUI(False)
 
-    env = Farkle_v4()
+    ###########################################
 
-    output_nbr = 127
+    ##### LOAD SPECIFIC MODEL TO TRAIN #######
+
+    # model = tf.keras.models.load_model(f'model/farkle_DQN_1001_2024-11-29 191306.630389', custom_objects=None, compile=True, safe_mode=True)
+
+    ##########################################
 
     #### PARAMS ######
-    num_episodes = 10000
+
+    env = Farkle_v4()
+    output_nbr = 127
+
+    num_episodes = 100
     gamma = 0.999
     alpha = 0.001
     start_epsilon = 1.0
     end_epsilon = 0.00001
-    max_replay_size = 0
-    batch_size = 0
+    max_replay_size = 1000
+    batch_size = 32
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
     target_update_frequency = 10
-    alpha_priority = 0.0
-    beta_start = 0.0
-    K = 0
-    ##################
+    alpha_priority = 0.5
+    beta_start = 0.5
 
+    ##################
 
     params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
               "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
               "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency,
               "alpha_priority": alpha_priority, "beta_start": beta_start}
 
-    model = keras.Sequential([
-        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    ])
-
-
-    target_model = keras.Sequential([
-        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    ])
+    ################## MODEL NAME ##################
 
     dt = datetime.datetime.now()
     ts = datetime.datetime.timestamp(dt)
-    save_name = f'Farkle_DDQN_NO_EP_{num_episodes}_{ts}'
+    save_name = f'Farkle_DDQN_PER_{num_episodes}_{ts}'
 
-    # model = tf.keras.models.load_model(f'model/farkle_DQN_1001_2024-11-29 191306.630389', custom_objects=None, compile=True, safe_mode=True)
+    ################################################
 
-    model, mean_score, mean_steps, simulation_score_history,step_history = (
-        DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(model, target_model, env, num_episodes, gamma, alpha,
-                                                        start_epsilon, end_epsilon,
-                                                        nbr_of_games_per_simulation, target_update_frequency
-                                                        , save_name))
+    ################## DQN ##################
 
+    # model = generate_model(output_nbr)
+    #
     # model, mean_score, mean_steps, simulation_score_history, step_history = (
-    #     DoubleDeepQLearning_prioritized_expreplay.doubleDeepQLearning(model,target_model, env, num_episodes, gamma, alpha,
-    #                                 start_epsilon, end_epsilon, max_replay_size, batch_size,
-    #                                 nbr_of_games_per_simulation, target_update_frequency, alpha_priority, beta_start,
-    #                                 save_name))
+    #     DeepQLearning.deepQLearning(
+    #         model, env, num_episodes, gamma, alpha,start_epsilon, end_epsilon,
+    #         max_replay_size, batch_size, nbr_of_games_per_simulation, save_name))
 
+    ################################################
+
+    ################## DDQN EXP REPLAY ##################
+
+    # model = generate_model(output_nbr)
+    # target_model = generate_model(output_nbr)
+    #
     # model, mean_score, mean_steps, simulation_score_history, step_history = (
-    #     DeepQLearning.deepQLearning(model, env, num_episodes, gamma, alpha,
-    #                                 start_epsilon, end_epsilon, max_replay_size, batch_size,
-    #                                 nbr_of_games_per_simulation, save_name))
+    # DoubleDeepQLearning.doubleDeepQLearning(
+    #     model, target_model, env, num_episodes, gamma, alpha, start_epsilon, end_epsilon,
+    #     max_replay_size, batch_size, nbr_of_games_per_simulation, target_update_frequency, save_name))
+
+    ################################################
+
+    ################## DDQN NO EXP REPLAY ##################
+
+    # model = generate_model(output_nbr)
+    # target_model = generate_model(output_nbr)
+    #
+    # model, mean_score, mean_steps, simulation_score_history, step_history = (
+    #     DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(
+    #             model, target_model, env, num_episodes, gamma, alpha,
+    #             start_epsilon, end_epsilon, nbr_of_games_per_simulation, target_update_frequency, save_name))
+
+    ################################################
+
+    ################## DDQN PER ##################
+
+    model = generate_model(output_nbr)
+    target_model = generate_model(output_nbr)
+
+    model, mean_score, mean_steps, simulation_score_history, step_history = (
+        DoubleDeepQLearning_prioritized_expreplay.doubleDeepQLearning(
+            model, target_model, env, num_episodes, gamma, alpha,
+            start_epsilon, end_epsilon, max_replay_size, batch_size, nbr_of_games_per_simulation, target_update_frequency,
+            alpha_priority, beta_start, save_name))
+
+    ################################################
+
+    ###### SAVE MODEL AND RESULTS ########
 
     model.save(f'model/{save_name}')
 
@@ -110,76 +194,42 @@ def main():
     with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
         f.write(str(dict_to_write))
 
+    ##############################################
 
-
-    # model = tf.keras.models.load_model(f'model/farkle_DQN_from_1000_to_9001_2024-11-29 221248.055952', custom_objects=None, compile=True, safe_mode=True)
-    # mean_score = DeepQLearning.play_number_of_games(500, model, env)
+    ############### DQN/DDQN MODEL VS RANDOM ############
+    #
+    # model = tf.keras.models.load_model(f'model/Farkle_DDQN_1000_1733151441.081697', custom_objects=None, compile=True, safe_mode=True)
+    # mean_score = play_number_of_games(500, model, env)
     # print(mean_score)
 
+    ##############################################
 
-    # while True:
-    #     env.reset()
-    #     while not env.is_game_over():
-    #         print(env)
-    #         s = env.state_description()
-    #         s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
-    #         mask = env.action_mask()
-    #         mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
-    #         q_s = DeepQLearning.model_predict(model, s_tensor)
-    #         a = DeepQLearning.greedy_action(q_s, mask_tensor, env.available_actions_ids())
-    #         env.step(a)
-    #     print(env)
-    #     input("Press Enter to continue...")
+    ############ Q LEARNING #################
 
-    # def run_random_game(nombre_de_parties):
-    #     # env = Farkle()
-    #     # env = Farkle_v2()
-    #     env = Farkle_v4()
-    #     total_reward = 0
-    #     start_time = time.time()
-    #     for _ in tqdm(range(nombre_de_parties)):
-    #         env.reset()
-    #         env.play_game_random()
-    #         total_reward += env.reward
-    #         # print(total_reward)
+    # Q_learning_gamma = 0.99
+    # epsilon = 0.1
+    # Q_learning_alpha = 0.01
+    # Q_learning_num_episodes = 100000
+    # max_steps = 100000
+    # Q_learning_params = {"gamma": Q_learning_gamma, "epsilon": epsilon, "alpha": Q_learning_alpha,
+    #           "nb_iter": Q_learning_num_episodes, "max_steps": max_steps}
     #
-    #     time_delta = time.time() - start_time
-    #     print(f"Mean Reward: {total_reward / nombre_de_parties}")
-    #     print(f"Total time for {nombre_de_parties} games: {time_delta:.2f} seconds")
-    #     games_per_second = nombre_de_parties / time_delta
-    #     print(f"Games per second: {games_per_second:.2f}")
-
-    # def run_gui_game():
-    #     env = FarkleGui()
-    #     env.run_game_GUI()
-
-    # run_random_game(10000)
-    # run_gui_game()
-
-    # env = Farkle_new()
-    # env.play_game_random()
-
-    # env = Farkle_v4()
-    # env.launch_dices()
-    # player = Player_v4(0)
-    # aa = env.available_actions(player)
-    # print("available actions: ", aa)
-    # print("random_action", env.random_action(aa))
-
-    # env = Farkle_v4()
-    # Pi, mean_score, num_of_steps = env.Q_learning_off_policy(0.999, 0.1, 0.1, 100000, 100_000)
-    # # params = {"gamma": 0.99, "epsilon": 0.05, "alpha": 0.01, "nb_iter": 100000, "max_steps": 1_000_000}
+    # Pi, mean_score, num_of_steps = env.Q_learning_off_policy(Q_learning_gamma, epsilon, Q_learning_alpha, Q_learning_num_episodes, max_steps)
     # print(mean_score)
     # print(num_of_steps)
     # print(Pi)
-    # dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": params}
+    # dict_to_write = {"mean_score": mean_score, "num_of_steps": num_of_steps, "params": Q_learning_params}
     #
     # with open("results/Farkle/Q_learning/farkle_qlearning_100000.txt", "w") as f:
     #     f.write(str(dict_to_write))
-
+    #
     # mean_score, mean_num_steps = env.run_game_Pi(Pi, 1)
     # print(mean_score)
     # print(mean_num_steps)
+
+    #############################################
+
+    ############ MCRR #################
 
     # score_after = []
     # steps_after = []
@@ -199,8 +249,7 @@ def main():
     # with open("results/TicTacToe/MCRR/tictactoe_mcrr_100_games.txt", "w") as f:
     #     f.write(str(dict_to_write))
 
-for i in range(1):
-    # cProfile.run("main()")
+    ####################################
 
-    main()
+main()
 
