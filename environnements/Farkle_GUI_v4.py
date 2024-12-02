@@ -2,11 +2,25 @@ import numpy as np
 import random
 from collections import defaultdict
 from tqdm import tqdm
+import keras
+import tensorflow as tf
 
 NUM_DICE_VALUE_ONE_HOT = 36
 NUM_DICE_SAVED_ONE_HOT = 12
 NUM_DICE = 6
 NUM_STATE_FEATURES = NUM_DICE_VALUE_ONE_HOT + NUM_DICE_SAVED_ONE_HOT + 3
+
+@tf.function
+def model_predict(model, s):
+    return model(tf.expand_dims(s, 0))[0]
+
+def epsilon_greedy_action(
+        q_s: tf.Tensor,
+        mask: tf.Tensor
+) -> int:
+    inverted_mask = tf.constant(-1.0) * mask + tf.constant(1.0)
+    masked_q_s = q_s * mask + tf.float32.min * inverted_mask
+    return int(tf.argmax(masked_q_s, axis=0))
 
 class Player_v4:
 
@@ -880,6 +894,90 @@ class Farkle_GUI_v4:
                 try:
                     var = int(var)
                     if var in aa:
+                        break
+                    else:
+                        print("Invalid action. Please choose a valid action from the list.")
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+
+            self.step(int(var))
+
+    def make_model_play(self, model):
+        while not self.is_game_over and self.player_turn == 1:
+            self.launch_dices()
+            self.print_dices()
+            previous_potential_score = self.player_2.potential_score
+            aa = self.available_actions(self.player_2)
+            if previous_potential_score != self.player_2.potential_score:
+                self.print_dices()
+
+            if sum(aa) == 0.0:
+                print('##### NO MORE AVAILABLE ACTION FOR PLAYER 2 ######')
+                self.end_turn_score(False, self.player_2)
+                return
+            s = self.state_description()
+            s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
+            mask = self.action_mask(aa)
+            mask_tensor = tf.convert_to_tensor(mask, dtype=tf.float32)
+            q_s = model_predict(model, s_tensor)
+            a = epsilon_greedy_action(q_s, mask_tensor)
+            print(f"chosen action: {self.actions_dict[a]}")
+            self.step(a)
+
+            if self.is_game_over:
+                return
+
+        self.dices_values.fill(0)
+        self.saved_dice.fill(0)
+        self.player_turn = 0
+
+    def play_game_training(self, model):
+        if self.player_turn == 1:
+            self.make_model_play(model)
+
+        self.launch_dices()
+        self.print_dices()
+        aa = self.available_actions(self.player_1)
+        if sum(aa) == 0.0:
+            print('##### NO MORE AVAILABLE ACTION FOR PLAYER 1 ######')
+            self.end_turn_score(False, self.player_1)
+            self.make_model_play(model)
+            if self.is_game_over:
+                return
+            else:
+                return self.play_game_training(model)
+        return aa
+
+    def run_game_GUI_vs_model(self, model):
+        # self.reset()
+        while not self.is_game_over:
+            if self.player_1.potential_score == 0.0:
+                aa = self.play_game_training(model)
+                if self.player_1.potential_score != 0.0:
+                    self.print_dices()
+            else:
+                self.launch_dices()
+                self.print_dices()
+                previous_potential_score = self.player_1.potential_score
+                aa = self.available_actions(self.player_1)
+                if previous_potential_score != self.player_1.potential_score:
+                    self.print_dices()
+
+
+            actions_dict = self.available_action_keys_from_action[tuple(aa)]
+
+            print(f"available actions:")
+            for action in actions_dict:
+                if self.actions_dict[action][6] == 0:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et relancer les dés")
+                else:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et finir le tour")
+
+            while True:
+                var = input("Choose one action and press Enter: ")
+                try:
+                    var = int(var)
+                    if var in actions_dict:
                         break
                     else:
                         print("Invalid action. Please choose a valid action from the list.")

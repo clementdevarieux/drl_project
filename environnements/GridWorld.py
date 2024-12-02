@@ -19,6 +19,7 @@ class GridWorld:
                 ] for _ in range(4)
             ] for _ in range(49)
         ]
+        self.number_of_steps = 0
         
     def generate_random_probabilities(self):
         probabilities = [random.uniform(0, 1) for _ in range(len(self.available_actions()))]
@@ -160,6 +161,7 @@ class GridWorld:
 
     def step(self, action):
         if action in self.A and not self.is_game_over():
+            self.number_of_steps += 1
             if action == 0:  # Left
                 self.agent_pos -= 1
             elif action == 1:  # Right
