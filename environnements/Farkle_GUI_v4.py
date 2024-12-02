@@ -887,3 +887,45 @@ class Farkle_GUI_v4:
                     print("Invalid input. Please enter a number.")
 
             self.step(int(var))
+
+
+    def run_game_GUI_vs_model(self):
+        # self.reset()
+        while not self.is_game_over:
+            while not self.is_game_over and self.player_turn == 1:
+                self.player_2_random_play()
+
+            self.launch_dices()
+            self.print_dices()
+            aa = self.available_action_keys_from_action[tuple(self.available_actions(self.player_1))]
+
+            if 0 in aa and 64 in aa:
+                self.end_turn_score(False, self.player_1)
+                print("Fin du tour, aucune combinaison possible")
+                if self.player_turn == 1:
+                    while not self.is_game_over and self.player_turn == 1:
+                        self.player_2_random_play()
+
+                    self.reset_saved_dices()
+                    self.player_turn = 0
+                    continue
+
+            print(f"available actions:")
+            for action in aa:
+                if self.actions_dict[action][6] == 0:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et relancer les dés")
+                else:
+                    print(f"{action}: {self.actions_dict[action][0:6]} et finir le tour")
+
+            while True:
+                var = input("Choose one action and press Enter: ")
+                try:
+                    var = int(var)
+                    if var in aa:
+                        break
+                    else:
+                        print("Invalid action. Please choose a valid action from the list.")
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
+
+            self.step(int(var))
