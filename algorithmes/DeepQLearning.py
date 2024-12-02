@@ -34,7 +34,7 @@ def batch_gradient_step(model, transitions, optimizer, gamma):
 
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
-
+    return loss
 
 @tf.function
 def model_predict(model, s):
@@ -88,14 +88,14 @@ def deepQLearning(
         end_epsilon: float,
         max_replay_size: int,
         batchSize: int,
-        nbr_of_games_per_simulation: int
+        nbr_of_games_per_simulation: int,
+        save_name: str
 ):
     replay_memory = deque(maxlen=max_replay_size)
-    # replay_memory = []
-
-    # optimizer = keras.optimizers.SGD(learning_rate=alpha, weight_decay=1e-7)
-    # optimizer = keras.optimizers.SGD(learning_rate=alpha)
     optimizer = keras.optimizers.Adam(learning_rate=alpha)
+
+    log_dir = "logs/" + save_name
+    summary_writer = tf.summary.create_file_writer(log_dir)
 
     total_score = 0.0
     total_steps = 0
@@ -103,14 +103,14 @@ def deepQLearning(
     total_losses = 0
     simulation_score_history = {}
     step_history = {}
-    # loss_history = []
+    loss_history = []
     mask_tensor_cache = {}
 
     for ep_id in tqdm(range(num_episodes)):
         progress = ep_id / num_episodes
         decayed_epsilon = (1.0 - progress) * start_epsilon + progress * end_epsilon
 
-        if ep_id % 1000 == 0 and ep_id != 0:
+        if (ep_id % 200 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
             print(f"Mean Score: {total_score / ep_id}")
             print(f"Mean steps: {total_steps / ep_id}")
             simulation = play_number_of_games(nbr_of_games_per_simulation, model, env)
@@ -118,8 +118,15 @@ def deepQLearning(
             simulation_score_history[ep_id] = simulation
             step_history[ep_id] = total_steps / ep_id
 
+            with summary_writer.as_default():
+                tf.summary.scalar("Simulation/Mean_Score", simulation, step=ep_id)
+                tf.summary.scalar("Simulation/Mean_Steps", total_steps / ep_id, step=ep_id)
+                tf.summary.scalar("Training/Epsilon", decayed_epsilon, step=ep_id)
+
         env.reset()
         dice_launched = False
+        episode_reward = 0
+
         while not env.is_game_over:
             if env.player_1.potential_score == 0.0 and not dice_launched:
                 aa = env.play_game_training()
@@ -150,7 +157,7 @@ def deepQLearning(
             dice_launched = True
 
             r = env.player_1.score - env.player_2.score - prev_score
-
+            episode_reward += r
             s_prime = env.state_description()
             s_prime_tensor = tf.convert_to_tensor(s_prime, dtype=tf.float32)
 
@@ -166,26 +173,11 @@ def deepQLearning(
                 # mask_prime_tensor = tf.convert_to_tensor(mask_prime, dtype=tf.float32)
                 replay_memory.append((s_tensor, a, r, s_prime_tensor, mask_prime_tensor))
 
-            # if len(replay_memory) > max_replay_size:
-            #     replay_memory = replay_memory[-max_replay_size:]
-
             if len(replay_memory) < batchSize:
                 replay_memory_sample = replay_memory
             else:
                 replay_memory_sample  = random.sample(replay_memory, batchSize)
 
-            # losses = []
-            # for transition in replay_memory_sample:
-            #     q_s_prime = model_predict(model, transition[3])
-            #     mask_prime_tensor = transition[4]
-            #     best_a_index = epsilon_greedy_action(q_s_prime, mask_prime_tensor)
-            #     max_q_s_prime = q_s_prime.numpy()[best_a_index]
-            #     yj = transition[2] + gamma * max_q_s_prime
-            #
-            #     gradient_step(model, transition[0], transition[1], yj, optimizer)
-                # losses.append(loss)
-            # reduced_loss = tf.reduce_mean(losses)
-            # loss_history.append(reduced_loss.numpy())
             if len(replay_memory) >= batchSize:
                 transitions = [
                     (tf.convert_to_tensor(s, dtype=tf.float32),
@@ -195,7 +187,12 @@ def deepQLearning(
                      tf.convert_to_tensor(mask_prime, dtype=tf.float32))
                     for s, a, r, s_prime, mask_prime in replay_memory_sample
                 ]
-                batch_gradient_step(model, transitions, optimizer, gamma)
+                loss = batch_gradient_step(model, transitions, optimizer, gamma)
+                loss_history.append(loss.numpy())
+
+                with summary_writer.as_default():
+                    tf.summary.scalar("Training/Loss", loss.numpy(), step=ep_id)
+
 
         total_score += env.reward
         total_steps += env.number_of_steps
@@ -204,6 +201,9 @@ def deepQLearning(
         else:
             total_wins += 1
 
+        with summary_writer.as_default():
+            tf.summary.scalar("Training/Episode_Reward", episode_reward, step=ep_id)
+
     mean_score = total_score / num_episodes
     mean_steps= total_steps / num_episodes
 
@@ -211,13 +211,3 @@ def deepQLearning(
     print(f"total losses = {total_losses}")
 
     return model, mean_score, mean_steps, simulation_score_history, step_history
-
-
-    # N correspond aux Last N experience tuples
-    #We instead use an architecture
-    # in which there is a separate output unit for each possible action, and only the state representation is
-    # an input to the neural network
-    # xt[Rd from the emulator,which is a vector of pixel values representing the current screen
-
-    # et = (st, at, rt, st+1)
-    # in a dataset D = e1, ..., eN

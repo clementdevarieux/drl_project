@@ -23,10 +23,10 @@ def batch_gradient_step(model, target_model, transitions, gamma, optimizer, w_j)
         losses = []
         td_errors = []
         for idx, (s, a, r, s_prime, mask_prime) in enumerate(transitions):
-            q_s_prime = model_predict(model, s_prime)
+            q_s_prime = model(tf.expand_dims(s_prime, 0))[0]
             best_action = tf.argmax(q_s_prime * mask_prime)
 
-            q_target = model_predict(target_model, s_prime)
+            q_target = target_model(tf.expand_dims(s_prime, 0))[0]
             max_q_s_prime = q_target[best_action]
 
             td_error = r + gamma * max_q_s_prime - model_predict(model, s)[a]
@@ -43,9 +43,9 @@ def batch_gradient_step(model, target_model, transitions, gamma, optimizer, w_j)
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
 
-    return td_errors
+    return td_errors, loss
 
-# @tf.function
+@tf.function
 def model_predict(model, s):
     return model(tf.expand_dims(s, 0))[0]
 
@@ -102,10 +102,14 @@ def doubleDeepQLearning(
         target_update_frequency: int,
         alpha_priority: float,
         beta_start: float,
+        save_name: str
 ):
     replay_memory = deque(maxlen=max_replay_size)
     priorities = deque(maxlen=max_replay_size)
     optimizer = keras.optimizers.Adam(learning_rate=alpha)
+
+    log_dir = "logs/" + save_name
+    summary_writer = tf.summary.create_file_writer(log_dir)
 
     total_score = 0.0
     total_steps = 0
@@ -137,9 +141,15 @@ def doubleDeepQLearning(
             print(f"Mean score from simulation: {simulation}")
             simulation_score_history[ep_id] = simulation
             step_history[ep_id] = total_steps / ep_id
+            with summary_writer.as_default():
+                tf.summary.scalar("Simulation/Mean_Score", simulation, step=ep_id)
+                tf.summary.scalar("Simulation/Mean_Steps", total_steps / ep_id, step=ep_id)
+                tf.summary.scalar("Training/Epsilon", decayed_epsilon, step=ep_id)
 
         env.reset()
         dice_launched = False
+        episode_reward = 0
+
         while not env.is_game_over:
             if env.player_1.potential_score == 0.0 and not dice_launched:
                 aa = env.play_game_training()
@@ -166,6 +176,7 @@ def doubleDeepQLearning(
             dice_launched = True
 
             r = env.player_1.score - env.player_2.score - prev_score
+            episode_reward += r
 
             s_prime = env.state_description()
             s_prime_tensor = tf.convert_to_tensor(s_prime, dtype=tf.float32)
@@ -202,7 +213,11 @@ def doubleDeepQLearning(
                     for s, a, r, s_prime, mask_prime in samples
                 ]
 
-                td_errors = batch_gradient_step(model, target_model, transitions, gamma, optimizer, w_j)
+                td_errors, loss = batch_gradient_step(model, target_model, transitions, gamma, optimizer, w_j)
+
+                with summary_writer.as_default():
+                    tf.summary.scalar("Training/Loss", loss.numpy(), step=ep_id)
+
 
                 for idx, td_error in enumerate(td_errors):
                     priorities[indices[idx]] = abs(td_error.numpy()) + 0.0001
@@ -216,6 +231,9 @@ def doubleDeepQLearning(
             total_losses += 1
         else:
             total_wins += 1
+
+        with summary_writer.as_default():
+            tf.summary.scalar("Training/Episode_Reward", episode_reward, step=ep_id)
 
     mean_score = total_score / num_episodes
     mean_steps = total_steps / num_episodes

@@ -33,82 +33,82 @@ def run_GUI(isWithModel: bool, model = None):
         env.run_game_GUI()
 
 def main():
-    model = tf.keras.models.load_model(f'model/farkle_DQN_30000_1733041323.107115', custom_objects=None, compile=True, safe_mode=True)
-
-    run_GUI(True, model)
+    # model = tf.keras.models.load_model(f'model/farkle_DQN_30000_1733041323.107115', custom_objects=None, compile=True, safe_mode=True)
+    #
+    # run_GUI(True, model)
     # run_GUI(False)
 
-    # env = Farkle_v4()
+    env = Farkle_v4()
 
     output_nbr = 127
 
     #### PARAMS ######
-    num_episodes = 2000
+    num_episodes = 10000
     gamma = 0.999
     alpha = 0.001
     start_epsilon = 1.0
     end_epsilon = 0.00001
-    max_replay_size = 516
-    batch_size = 32
+    max_replay_size = 0
+    batch_size = 0
     activation = 'softmax'
     nbr_of_games_per_simulation = 1000
-    target_update_frequency = 20
-    alpha_priority = 0.5
-    beta_start = 0.5
+    target_update_frequency = 10
+    alpha_priority = 0.0
+    beta_start = 0.0
     K = 0
     ##################
 
-    #
-    # params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
-    #           "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
-    #           "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency,
-    #           "alpha_priority": alpha_priority, "beta_start": beta_start}
-    #
-    # model = keras.Sequential([
-    #     keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    # ])
-    #
-    #
-    # target_model = keras.Sequential([
-    #     keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
-    #     keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
-    # ])
+
+    params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
+              "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
+              "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency,
+              "alpha_priority": alpha_priority, "beta_start": beta_start}
+
+    model = keras.Sequential([
+        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    ])
+
+
+    target_model = keras.Sequential([
+        keras.layers.Dense(64, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(32, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(16, activation='tanh', bias_initializer='glorot_uniform'),
+        keras.layers.Dense(output_nbr, activation='softmax', bias_initializer='glorot_uniform'),
+    ])
+
+    dt = datetime.datetime.now()
+    ts = datetime.datetime.timestamp(dt)
+    save_name = f'Farkle_DDQN_NO_EP_{num_episodes}_{ts}'
 
     # model = tf.keras.models.load_model(f'model/farkle_DQN_1001_2024-11-29 191306.630389', custom_objects=None, compile=True, safe_mode=True)
 
-    # model, mean_score, mean_steps, simulation_score_history,step_history = (
-    #     DoubleDeepQLearning_prioritized_expreplay_no_K.doubleDeepQLearning(model, target_model, env, num_episodes, gamma, alpha,
-    #                                                     start_epsilon, end_epsilon, max_replay_size, batch_size,
-    #                                                     nbr_of_games_per_simulation, target_update_frequency,
-    #                                                     alpha_priority, beta_start))
+    model, mean_score, mean_steps, simulation_score_history,step_history = (
+        DoubleDeepQLearning_without_exp_replay.DoubleDeepQLearning_without_exp_replay(model, target_model, env, num_episodes, gamma, alpha,
+                                                        start_epsilon, end_epsilon,
+                                                        nbr_of_games_per_simulation, target_update_frequency
+                                                        , save_name))
 
     # model, mean_score, mean_steps, simulation_score_history, step_history = (
     #     DoubleDeepQLearning_prioritized_expreplay.doubleDeepQLearning(model,target_model, env, num_episodes, gamma, alpha,
     #                                 start_epsilon, end_epsilon, max_replay_size, batch_size,
-    #                                 nbr_of_games_per_simulation, target_update_frequency,
-    #                                 alpha_priority, beta_start))
+    #                                 nbr_of_games_per_simulation, target_update_frequency, alpha_priority, beta_start,
+    #                                 save_name))
 
     # model, mean_score, mean_steps, simulation_score_history, step_history = (
-    #     DeepQLearning_gridworld.deepQLearning(model, env, num_episodes, gamma, alpha,
+    #     DeepQLearning.deepQLearning(model, env, num_episodes, gamma, alpha,
     #                                 start_epsilon, end_epsilon, max_replay_size, batch_size,
-    #                                 nbr_of_games_per_simulation))
+    #                                 nbr_of_games_per_simulation, save_name))
 
-    # dt = datetime.datetime.now()
-    #
-    # ts = datetime.datetime.timestamp(dt)
-    # save_name = f'Farkle_DDQN_PER_{num_episodes}_{ts}'
-    # model.save(f'model/{save_name}')
-    #
-    # dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
-    #                  , "step_history": step_history ,"params": params}
-    #
-    # with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
-    #     f.write(str(dict_to_write))
+    model.save(f'model/{save_name}')
+
+    dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
+                     , "step_history": step_history ,"params": params}
+
+    with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
+        f.write(str(dict_to_write))
 
 
 

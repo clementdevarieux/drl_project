@@ -21,11 +21,11 @@ def gradient_step(model, s, a, target, optimizer):
         loss = tf.square(q_s_a - target)
     gradients = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(gradients, model.trainable_variables))
+    return loss
 
+@tf.function
 def model_predict(model, s):
-    if len(s.shape) == 1:
-        s = tf.expand_dims(s, 0)
-    return model(s)[0]
+    return model(tf.expand_dims(s, 0))[0]
 
 def epsilon_greedy_action(q_s: tf.Tensor, mask: tf.Tensor) -> int:
     inverted_mask = tf.constant(-1.0) * mask + tf.constant(1.0)
@@ -71,9 +71,17 @@ def DoubleDeepQLearning_without_exp_replay(
         start_epsilon: float,
         end_epsilon: float,
         nbr_of_games_per_simulation: int,
-        target_update_frequency: int
+        target_update_frequency: int,
+        save_name: str
 ):
     optimizer = keras.optimizers.Adam(learning_rate=alpha)
+
+    log_dir = "logs/" + save_name
+    summary_writer = tf.summary.create_file_writer(log_dir)
+
+    dummy_input = tf.zeros((1, 51))
+    model(dummy_input)
+    target_model(dummy_input)
 
     total_score = 0.0
     total_steps = 0
@@ -95,7 +103,7 @@ def DoubleDeepQLearning_without_exp_replay(
         if ep_id % target_update_frequency == 0 and ep_id != 0:
             target_model.set_weights(model.get_weights())
 
-        if ep_id % 3000 == 0 and ep_id != 0:
+        if (ep_id % 2000 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
             print(f"Mean Score: {total_score / ep_id}")
             print(f"Mean steps: {total_steps / ep_id}")
             simulation = play_number_of_games(nbr_of_games_per_simulation, model, env)
@@ -103,8 +111,15 @@ def DoubleDeepQLearning_without_exp_replay(
             simulation_score_history[ep_id] = simulation
             step_history[ep_id] = total_steps / ep_id
 
+            with summary_writer.as_default():
+                tf.summary.scalar("Simulation/Mean_Score", simulation, step=ep_id)
+                tf.summary.scalar("Simulation/Mean_Steps", total_steps / ep_id, step=ep_id)
+                tf.summary.scalar("Training/Epsilon", decayed_epsilon, step=ep_id)
+
         env.reset()
         dice_launched = False
+        episode_reward = 0
+
         while not env.is_game_over:
             if env.player_1.potential_score == 0.0 and not dice_launched:
                 aa = env.play_game_training()
@@ -131,6 +146,7 @@ def DoubleDeepQLearning_without_exp_replay(
             dice_launched = True
 
             r = env.player_1.score - env.player_2.score - prev_score
+            episode_reward += r
 
             s_prime = env.state_description()
             s_prime_tensor = tf.convert_to_tensor(s_prime, dtype=tf.float32)
