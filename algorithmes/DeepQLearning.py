@@ -110,7 +110,7 @@ def deepQLearning(
         progress = ep_id / num_episodes
         decayed_epsilon = (1.0 - progress) * start_epsilon + progress * end_epsilon
 
-        if (ep_id % 200 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
+        if (ep_id % 400 == 0 and ep_id != 0) or (ep_id == num_episodes -1):
             print(f"Mean Score: {total_score / ep_id}")
             print(f"Mean steps: {total_steps / ep_id}")
             simulation = play_number_of_games(nbr_of_games_per_simulation, model, env)

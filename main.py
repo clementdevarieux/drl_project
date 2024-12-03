@@ -87,10 +87,10 @@ def main():
 
     ######### GAME VS MODEL OR RANDOM #########
 
-    # model = tf.keras.models.load_model(f'model/Farkle_DDQN_PER_100_1733176026.88911', custom_objects=None, compile=True, safe_mode=True)
-    #
-    # # to play vs model
-    # run_GUI(True, model)
+    model = tf.keras.models.load_model(f'model/Farkle_DDQN_1000_1733151441.081697', custom_objects=None, compile=True, safe_mode=True)
+
+    # to play vs model
+    run_GUI(True, model)
     #
     # # to play vs random
     # run_GUI(False)
@@ -99,51 +99,51 @@ def main():
 
     ##### LOAD SPECIFIC MODEL TO TRAIN #######
 
-    # model = tf.keras.models.load_model(f'model/farkle_DQN_1001_2024-11-29 191306.630389', custom_objects=None, compile=True, safe_mode=True)
+    # model = tf.keras.models.load_model(f'model/Farkle_DQN_1000_1733147755.777899', custom_objects=None, compile=True, safe_mode=True)
 
     ##########################################
 
     #### PARAMS ######
 
-    env = Farkle_v4()
-    output_nbr = 127
-
-    num_episodes = 3000
-    gamma = 0.999
-    alpha = 0.001
-    start_epsilon = 1.0
-    end_epsilon = 0.00001
-    max_replay_size = 10000
-    batch_size = 32
-    activation = 'softmax'
-    nbr_of_games_per_simulation = 1000
-    target_update_frequency = 50
-    alpha_priority = 0.0
-    beta_start = 0.0
+    # env = Farkle_v4()
+    # output_nbr = 127
+    #
+    # num_episodes = 2000
+    # gamma = 0.999
+    # alpha = 0.001
+    # start_epsilon = 1.0
+    # end_epsilon = 0.00001
+    # max_replay_size = 1000
+    # batch_size = 32
+    # activation = 'softmax'
+    # nbr_of_games_per_simulation = 1000
+    # target_update_frequency = 50
+    # alpha_priority = 0.0
+    # beta_start = 0.0
 
     ##################
 
-    params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
-              "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
-              "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency,
-              "alpha_priority": alpha_priority, "beta_start": beta_start}
+    # params = {"gamma": gamma, "start_epsilon": start_epsilon, "end_epsilon": end_epsilon, "alpha": alpha,
+    #           "nb_iter": num_episodes, "max_replay_size": max_replay_size, "batch_size": batch_size, "activation": activation,
+    #           "nbr_of_games_per_simulation": nbr_of_games_per_simulation, "target_update_frequency": target_update_frequency,
+    #           "alpha_priority": alpha_priority, "beta_start": beta_start}
 
     ################## MODEL NAME ##################
 
-    dt = datetime.datetime.now()
-    ts = datetime.datetime.timestamp(dt)
-    save_name = f'Farkle_DDQN_PER_100_to_3000_{num_episodes}_{ts}'
+    # dt = datetime.datetime.now()
+    # ts = datetime.datetime.timestamp(dt)
+    # save_name = f'Farkle_DQN_1000_to_3000_{num_episodes}_{ts}'
 
     ################################################
 
     ################## DQN ##################
 
-    model = generate_model(output_nbr)
+    # model = generate_model(output_nbr)
 
-    model, mean_score, mean_steps, simulation_score_history, step_history = (
-        DeepQLearning.deepQLearning(
-            model, env, num_episodes, gamma, alpha,start_epsilon, end_epsilon,
-            max_replay_size, batch_size, nbr_of_games_per_simulation, save_name))
+    # model, mean_score, mean_steps, simulation_score_history, step_history = (
+    #     DeepQLearning.deepQLearning(
+    #         model, env, num_episodes, gamma, alpha,start_epsilon, end_epsilon,
+    #         max_replay_size, batch_size, nbr_of_games_per_simulation, save_name))
 
     ################################################
 
@@ -186,13 +186,13 @@ def main():
 
     ###### SAVE MODEL AND RESULTS ########
 
-    model.save(f'model/{save_name}')
-
-    dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
-                     , "step_history": step_history ,"params": params}
-
-    with open(f"results/Farkle/DoubleDQN/{save_name}.txt", "w") as f:
-        f.write(str(dict_to_write))
+    # model.save(f'model/{save_name}')
+    #
+    # dict_to_write = {"mean_score": mean_score, "mean_steps": mean_steps, "score_evolution": simulation_score_history
+    #                  , "step_history": step_history ,"params": params}
+    #
+    # with open(f"results/Farkle/DQN/{save_name}.txt", "w") as f:
+    #     f.write(str(dict_to_write))
 
     ##############################################
 

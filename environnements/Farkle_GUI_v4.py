@@ -903,17 +903,17 @@ class Farkle_GUI_v4:
             self.step(int(var))
 
     def make_model_play(self, model):
-        while not self.is_game_over and self.player_turn == 1:
+        while not self.is_game_over and self.player_turn == 0:
             self.launch_dices()
             self.print_dices()
-            previous_potential_score = self.player_2.potential_score
-            aa = self.available_actions(self.player_2)
-            if previous_potential_score != self.player_2.potential_score:
+            previous_potential_score = self.player_1.potential_score
+            aa = self.available_actions(self.player_1)
+            if previous_potential_score != self.player_1.potential_score:
                 self.print_dices()
 
             if sum(aa) == 0.0:
-                print('##### NO MORE AVAILABLE ACTION FOR PLAYER 2 ######')
-                self.end_turn_score(False, self.player_2)
+                print('##### NO MORE AVAILABLE ACTION FOR PLAYER 1 ######')
+                self.end_turn_score(False, self.player_1)
                 return
             s = self.state_description()
             s_tensor = tf.convert_to_tensor(s, dtype=tf.float32)
@@ -929,18 +929,18 @@ class Farkle_GUI_v4:
 
         self.dices_values.fill(0)
         self.saved_dice.fill(0)
-        self.player_turn = 0
+        self.player_turn = 1
 
     def play_game_training(self, model):
-        if self.player_turn == 1:
+        if self.player_turn == 0:
             self.make_model_play(model)
 
         self.launch_dices()
         self.print_dices()
-        aa = self.available_actions(self.player_1)
+        aa = self.available_actions(self.player_2)
         if sum(aa) == 0.0:
             print('##### NO MORE AVAILABLE ACTION FOR PLAYER 1 ######')
-            self.end_turn_score(False, self.player_1)
+            self.end_turn_score(False, self.player_2)
             self.make_model_play(model)
             if self.is_game_over:
                 return
@@ -951,16 +951,16 @@ class Farkle_GUI_v4:
     def run_game_GUI_vs_model(self, model):
         # self.reset()
         while not self.is_game_over:
-            if self.player_1.potential_score == 0.0:
+            if self.player_2.potential_score == 0.0:
                 aa = self.play_game_training(model)
-                if self.player_1.potential_score != 0.0:
+                if self.player_2.potential_score != 0.0:
                     self.print_dices()
             else:
                 self.launch_dices()
                 self.print_dices()
-                previous_potential_score = self.player_1.potential_score
-                aa = self.available_actions(self.player_1)
-                if previous_potential_score != self.player_1.potential_score:
+                previous_potential_score = self.player_2.potential_score
+                aa = self.available_actions(self.player_2)
+                if previous_potential_score != self.player_2.potential_score:
                     self.print_dices()
 
 
