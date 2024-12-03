@@ -178,8 +178,8 @@ where
                     let a = greedy_action::<B::InnerBackend, NUM_STATE_FEATURES, NUM_ACTIONS>(
                         &q_s,
                         &mask_tensor,
-                    );
                     env.step(a);
+                    );
                 }
                 total_score += env.score();
             }

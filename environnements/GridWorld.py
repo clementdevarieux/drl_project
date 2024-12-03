@@ -1,6 +1,6 @@
 import random
 import numpy as np
-
+from tqdm import tqdm
 
 class GridWorld:
     def __init__(self):
@@ -19,6 +19,7 @@ class GridWorld:
                 ] for _ in range(4)
             ] for _ in range(49)
         ]
+        self.number_of_steps = 0
         
     def generate_random_probabilities(self):
         probabilities = [random.uniform(0, 1) for _ in range(len(self.available_actions()))]
@@ -37,6 +38,9 @@ class GridWorld:
                 return action
 
         return a_biggest_prob
+
+    def random_action(self):
+        return random.choice(self.A)
 
     def update_p(self):
         for s in range(self.num_states):
@@ -130,10 +134,13 @@ class GridWorld:
         ok_states = [8, 9, 10, 11, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 36, 37, 38, 39]
         self.agent_pos = random.choice(ok_states)
 
-    def state_desc(self):
+    def state_description(self):
         one_hot = [0.0] * self.num_states
         one_hot[self.agent_pos] = 1.0
         return one_hot
+
+    def restore_from_state(self, state):
+        self.agent_pos = state.index(1.0)
 
     def is_game_over(self):
         return self.agent_pos in self.T
@@ -154,6 +161,7 @@ class GridWorld:
 
     def step(self, action):
         if action in self.A and not self.is_game_over():
+            self.number_of_steps += 1
             if action == 0:  # Left
                 self.agent_pos -= 1
             elif action == 1:  # Right
@@ -203,6 +211,9 @@ class GridWorld:
             print("\n")
             step += 1
 
+    def action_mask(self) -> np.ndarray:
+        return np.array([]) if self.is_game_over() else np.array([1.0,1.0,1.0,1.0])
+
     def run_game_hashmap(self, Pi):
         print("Initial State:\n")
         self.reset()
@@ -241,3 +252,53 @@ class GridWorld:
             self.display()
             print("\n")
             step += 1
+
+    def monte_carlo_random_rollout(self, nb_simulations_per_action):
+        best_action = None
+        best_mean_score = -float('inf')
+        possible_actions = self.available_actions()
+        action_scores = {action: [] for action in possible_actions}
+
+        for action in possible_actions:
+            total_score = 0.0
+            for _ in tqdm(range(nb_simulations_per_action)):
+                # Create a copy of the environment
+                env_copy = GridWorld()
+                env_copy.restore_from_state(self.state_description())
+
+                # Perform the action
+                env_copy.step(action)
+
+                # Perform a random rollout
+                score = self.random_rollout(env_copy)
+                action_scores[action].append(score)
+                total_score += score
+
+            mean_score = total_score / nb_simulations_per_action
+
+            if mean_score > best_mean_score:
+                best_mean_score = mean_score
+                best_action = action
+
+            print(f"Action {action}: {action_scores[action]}")
+            print(f"Mean score: {mean_score}")
+
+        return best_action
+
+    def random_rollout(self, env):
+        while not env.is_game_over():
+            action = random.choice(env.available_actions())
+            env.step(action)
+        return env.score()
+
+    def launch_mcrr(self):
+        self.reset()
+        step = 0
+        while not self.is_game_over():
+            best_action = self.monte_carlo_random_rollout(1000)
+            if best_action is None:
+                best_action = random.choice(self.available_actions())
+            self.step(best_action)
+            step += 1
+
+        return self.score(), step

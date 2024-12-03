@@ -1,0 +1,1 @@
+{'mean_score': -1.0, 'mean_steps': 96.0, 'score_evolution': {1: -0.082}, 'step_history': {1: 124.0}, 'params': {'gamma': 0.999, 'start_epsilon': 1.0, 'end_epsilon': 1e-05, 'alpha': 0.001, 'nb_iter': 2, 'max_replay_size': 1000, 'batch_size': 32, 'activation': 'softmax', 'nbr_of_games_per_simulation': 1000, 'target_update_frequency': 10, 'alpha_priority': 0.5, 'beta_start': 0.5}}
